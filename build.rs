@@ -1,3 +1,4 @@
+use phf_codegen::Map as PhfMap;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -18,7 +19,7 @@ fn main() {
     let languages: HashMap<String, Language> =
         serde_yaml::from_str(&fs::read_to_string("languages.yml").unwrap()[..]).unwrap();
 
-    let mut filename_to_language_map = phf_codegen::Map::new();
+    let mut filename_to_language_map = PhfMap::new();
 
     for (language_name, language) in languages.iter() {
         if let Some(filenames) = &language.filenames {
