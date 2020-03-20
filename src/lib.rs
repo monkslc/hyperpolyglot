@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::io::{self, BufRead, BufReader, Read};
 
@@ -38,10 +39,12 @@ pub fn get_language_by_shebang<R: Read>(reader: R) -> Result<Vec<&'static str>, 
             }
         })
         .and_then(|interpreter| {
-            //TODO: Lazy Static regex
             // #!/usr/bin/python2.6.3 -> #!/usr/bin/python2
-            let rg = Regex::new(r#"[0-9]\.[0-9]"#).unwrap();
-            let interpreter = rg.split(interpreter).next().unwrap();
+            lazy_static! {
+                static ref RE: Regex = Regex::new(r#"[0-9]\.[0-9]"#).unwrap();
+            }
+            let interpreter = RE.split(interpreter).next().unwrap();
+
             INTERPRETERS.get(interpreter)
         });
 

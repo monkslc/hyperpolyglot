@@ -88,6 +88,7 @@ name = "hyperpolyglot"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "lazy_static",
  "phf",
  "phf_codegen",
  "regex",
