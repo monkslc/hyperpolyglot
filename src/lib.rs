@@ -12,6 +12,12 @@ include!(concat!(env!("OUT_DIR"), "/filename-language-map.rs"));
 // ex/ "parrot" => "Parrot Assembly|Parrot Internal Representation"
 include!(concat!(env!("OUT_DIR"), "/interpreter-language-map.rs"));
 
+// Include the map from interpreters to languages at compile time
+// static EXTENSIONS: phf::Map<&'static str, &'static str> = ...;
+// extensions that map to multiple languages are split with a pipe
+// ex/ ".h" => "C|C++"
+include!(concat!(env!("OUT_DIR"), "/extension-language-map.rs"));
+
 pub fn get_language_by_filename(filename: &str) -> Option<&&'static str> {
     FILENAMES.get(filename)
 }
@@ -50,8 +56,32 @@ pub fn get_language_by_shebang<R: Read>(reader: R) -> Result<Vec<&'static str>, 
 
     match languages {
         Some(languages) => Ok(languages.split("|").collect()),
-        None => Ok(Vec::new()),
+        None => Ok(vec![]),
     }
+}
+
+pub fn get_language_by_extension(filename: &str) -> Vec<&'static str> {
+    let extension = get_extension(filename);
+    let extension = extension.as_str();
+    let languages = EXTENSIONS
+        .get(extension)
+        .map(|languages| languages.split("|").collect());
+
+    match languages {
+        Some(languages) => languages,
+        None => vec![],
+    }
+}
+
+fn get_extension(filename: &str) -> String {
+    let filename = if filename.starts_with(".") {
+        &filename[1..]
+    } else {
+        filename
+    };
+
+    let extension_parts: Vec<&str> = filename.split(".").skip(1).collect();
+    extension_parts.join(".")
 }
 
 #[cfg(test)]
@@ -62,6 +92,10 @@ mod tests {
     #[test]
     fn test_get_language_by_filename() {
         assert_eq!(get_language_by_filename("APKBUILD"), Some(&"Alpine Abuild"));
+        assert_eq!(
+            get_language_by_filename(".eslintrc.json"),
+            Some(&"JSON with Comments")
+        );
     }
 
     #[test]
@@ -119,5 +153,22 @@ mod tests {
             get_language_by_shebang(Cursor::new(" #!/usr/bin")).unwrap(),
             empty_vec
         );
+    }
+
+    #[test]
+    fn test_get_language_by_extension() {
+        assert_eq!(get_language_by_extension("index.djs"), vec!["Dogescript"]);
+        assert_eq!(get_language_by_extension("example.cmake.in"), vec!["CMake"]);
+
+        let mut header_file_langs = get_language_by_extension("level.h");
+        header_file_langs.sort();
+        assert_eq!(header_file_langs, vec!["C", "C++", "Objective-C"]);
+
+        let empty_vec: Vec<&'static str> = vec![];
+        assert_eq!(get_language_by_extension("hello.kasdjf"), empty_vec);
+
+        assert_eq!(get_language_by_extension(".c"), empty_vec);
+        assert_eq!(get_language_by_extension(""), empty_vec);
+        assert_eq!(get_language_by_extension("noextension"), empty_vec);
     }
 }

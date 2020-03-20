@@ -12,6 +12,7 @@ use std::{
 struct Language {
     filenames: Option<Vec<String>>,
     interpreters: Option<Vec<String>>,
+    extensions: Option<Vec<String>>,
 }
 
 fn main() {
@@ -20,6 +21,7 @@ fn main() {
 
     create_filename_map(&languages);
     create_interpreter_map(&languages);
+    create_extension_map(&languages);
 }
 
 fn create_filename_map(languages: &HashMap<String, Language>) {
@@ -77,6 +79,46 @@ fn create_interpreter_map(languages: &HashMap<String, Language>) {
         &mut file,
         "static INTERPRETERS: phf::Map<&'static str, &'static str> = \n{};\n",
         interpreter_to_language_map.build()
+    )
+    .unwrap();
+}
+
+fn create_extension_map(languages: &HashMap<String, Language>) {
+    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("extension-language-map.rs");
+    let mut file = BufWriter::new(File::create(&path).unwrap());
+
+    let mut temp_map: HashMap<String, Vec<String>> = HashMap::new();
+    for (language_name, language) in languages.iter() {
+        if let Some(extensions) = &language.extensions {
+            for extension in extensions.iter() {
+                let mut extension = extension.clone();
+                // .js => js
+                extension.remove(0);
+                match temp_map.get_mut(&extension) {
+                    Some(entry) => {
+                        entry.push(language_name.clone());
+                    }
+                    None => {
+                        temp_map.insert(extension.clone(), vec![language_name.clone()]);
+                    }
+                }
+            }
+        }
+    }
+
+    let mut extension_to_language_map = PhfMap::new();
+    for (extension, languages) in temp_map.iter() {
+        extension_to_language_map.entry(
+            &extension[..],
+            // split langauges with a | character
+            format!("\"{}\"", languages.join("|")).as_str(),
+        );
+    }
+
+    writeln!(
+        &mut file,
+        "static EXTENSIONS: phf::Map<&'static str, &'static str> = \n{};\n",
+        extension_to_language_map.build()
     )
     .unwrap();
 }
