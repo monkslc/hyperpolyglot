@@ -104,16 +104,12 @@ fn create_extension_map(languages: &HashMap<String, Language>) {
 
     let mut extension_to_language_map = PhfMap::new();
     for (extension, languages) in temp_map.iter() {
-        extension_to_language_map.entry(
-            &extension[..],
-            // split langauges with a | character
-            format!("\"{}\"", languages.join("|")).as_str(),
-        );
+        extension_to_language_map.entry(&extension[..], format!("&{:?}", languages).as_str());
     }
 
     writeln!(
         &mut file,
-        "static EXTENSIONS: phf::Map<&'static str, &'static str> = \n{};\n",
+        "static EXTENSIONS: phf::Map<&'static str, &[&str]> = \n{};\n",
         extension_to_language_map.build()
     )
     .unwrap();

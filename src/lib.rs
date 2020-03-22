@@ -11,9 +11,7 @@ include!(concat!(env!("OUT_DIR"), "/filename-language-map.rs"));
 include!(concat!(env!("OUT_DIR"), "/interpreter-language-map.rs"));
 
 // Include the map from interpreters to languages at compile time
-// static EXTENSIONS: phf::Map<&'static str, &'static str> = ...;
-// extensions that map to multiple languages are split with a pipe
-// ex/ ".h" => "C|C++"
+// static EXTENSIONS: phf::Map<&'static str, &[&str]> = ...;
 include!(concat!(env!("OUT_DIR"), "/extension-language-map.rs"));
 
 pub fn get_language_by_filename(filename: &str) -> Option<&&'static str> {
@@ -63,7 +61,7 @@ pub fn get_language_by_extension(filename: &str) -> Vec<&'static str> {
     let extension = extension.as_str();
     let languages = EXTENSIONS
         .get(extension)
-        .map(|languages| languages.split("|").collect());
+        .map(|languages| languages.to_vec());
 
     match languages {
         Some(languages) => languages,
