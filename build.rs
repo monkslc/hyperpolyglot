@@ -68,16 +68,12 @@ fn create_interpreter_map(languages: &HashMap<String, Language>) {
 
     let mut interpreter_to_language_map = PhfMap::new();
     for (interpreter, languages) in temp_map.iter() {
-        interpreter_to_language_map.entry(
-            &interpreter[..],
-            // split langauges with a | character
-            format!("\"{}\"", languages.join("|")).as_str(),
-        );
+        interpreter_to_language_map.entry(&interpreter[..], format!("&{:?}", languages).as_str());
     }
 
     writeln!(
         &mut file,
-        "static INTERPRETERS: phf::Map<&'static str, &'static str> = \n{};\n",
+        "static INTERPRETERS: phf::Map<&'static str, &[&str]> = \n{};\n",
         interpreter_to_language_map.build()
     )
     .unwrap();

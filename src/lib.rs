@@ -7,9 +7,7 @@ use std::io::{self, BufRead, BufReader, Read};
 include!(concat!(env!("OUT_DIR"), "/filename-language-map.rs"));
 
 // Include the map from interpreters to languages at compile time
-// static INTERPRETERS: phf::Map<&'static str, &'static str> = ...;
-// interpreters that map to multiple languages are split with a pipe
-// ex/ "parrot" => "Parrot Assembly|Parrot Internal Representation"
+// static INTERPRETERS: phf::Map<&'static str, &[&str]> = ...;
 include!(concat!(env!("OUT_DIR"), "/interpreter-language-map.rs"));
 
 // Include the map from interpreters to languages at compile time
@@ -55,7 +53,7 @@ pub fn get_language_by_shebang<R: Read>(reader: R) -> Result<Vec<&'static str>, 
         });
 
     match languages {
-        Some(languages) => Ok(languages.split("|").collect()),
+        Some(languages) => Ok(languages.to_vec()),
         None => Ok(vec![]),
     }
 }
