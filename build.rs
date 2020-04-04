@@ -3,12 +3,13 @@ use phf_codegen::Map as PhfMap;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
-    env,
     fs::{self, File},
-    io::{BufWriter, Write},
-    iter,
-    path::Path,
+    io::{self, BufWriter, Write},
+    iter, time,
 };
+
+type LanguageMap = HashMap<String, Language>;
+type NamedPatterns = HashMap<String, MaybeMany<String>>;
 
 #[derive(Deserialize)]
 struct Language {
@@ -17,7 +18,6 @@ struct Language {
     extensions: Option<Vec<String>>,
 }
 
-type NamedPatterns = HashMap<String, MaybeMany<String>>;
 #[derive(Deserialize)]
 struct Heuristics {
     disambiguations: Vec<Disambiguation>,
@@ -140,25 +140,52 @@ enum MaybeMany<T> {
     One(T),
 }
 
+const DISAMBIGUATION_HEURISTICS_FILE: &str = "src/codegen/disambiguation-heuristics-map.rs";
+const EXTENSION_MAP_FILE: &str = "src/codegen/extension-language-map.rs";
+const FILENAME_MAP_FILE: &str = "src/codegen/filename-language-map.rs";
+const INTERPRETER_MAP_FILE: &str = "src/codegen/interpreter-language-map.rs";
+const LANGUAGE_LIST_FILE: &str = "src/codegen/languages.rs";
+const LANGUAGE_TOKEN_COUNT_FILE: &str = "src/codegen/language-token-count.rs";
+const TOTAL_TOKEN_COUNT_FILE: &str = "src/codegen/total-token-count.rs";
+
+const HEURISTICS_SOURCE_FILE: &str = "heuristics.yml";
+const LANGUAGE_SOURCE_FILE: &str = "languages.yml";
+const SAMPLES_DIR: &str = "samples";
+
 fn main() {
-    let languages: HashMap<String, Language> =
-        serde_yaml::from_str(&fs::read_to_string("languages.yml").unwrap()[..]).unwrap();
+    let languages_last_updated = get_last_updated_time(&LANGUAGE_SOURCE_FILE).unwrap();
+    let languages: LanguageMap =
+        serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..]).unwrap();
 
-    write_languages(&languages);
-    create_filename_map(&languages);
-    create_interpreter_map(&languages);
-    create_extension_map(&languages);
+    let language_dependents: Vec<(&dyn Fn(&LanguageMap) -> (), &str)> = vec![
+        (&write_languages, LANGUAGE_LIST_FILE),
+        (&create_filename_map, FILENAME_MAP_FILE),
+        (&create_interpreter_map, INTERPRETER_MAP_FILE),
+        (&create_extension_map, EXTENSION_MAP_FILE),
+    ];
+    language_dependents.iter().for_each(|(func, codegen_file)| {
+        if should_update_codegen(languages_last_updated, codegen_file) {
+            func(&languages);
+        }
+    });
 
+    let heuristics_last_updated = get_last_updated_time(HEURISTICS_SOURCE_FILE).unwrap();
     let heuristics: Heuristics =
-        serde_yaml::from_str(&fs::read_to_string("heuristics.yml").unwrap()[..]).unwrap();
-    create_disambiguation_heuristics_map(&heuristics);
+        serde_yaml::from_str(&fs::read_to_string(HEURISTICS_SOURCE_FILE).unwrap()[..]).unwrap();
+    if should_update_codegen(heuristics_last_updated, DISAMBIGUATION_HEURISTICS_FILE) {
+        create_disambiguation_heuristics_map(&heuristics);
+    };
 
-    train_classifier();
+    let samples_last_updated = get_last_updated_time(SAMPLES_DIR).unwrap();
+    if should_update_codegen(samples_last_updated, LANGUAGE_TOKEN_COUNT_FILE)
+        || should_update_codegen(samples_last_updated, TOTAL_TOKEN_COUNT_FILE)
+    {
+        train_classifier();
+    }
 }
 
-fn write_languages(languages: &HashMap<String, Language>) {
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("languages.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+fn write_languages(languages: &LanguageMap) {
+    let mut file = BufWriter::new(File::create(LANGUAGE_LIST_FILE).unwrap());
 
     let languages: Vec<String> = languages.keys().map(|language| language.clone()).collect();
 
@@ -170,9 +197,8 @@ fn write_languages(languages: &HashMap<String, Language>) {
     .unwrap();
 }
 
-fn create_filename_map(languages: &HashMap<String, Language>) {
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("filename-language-map.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+fn create_filename_map(languages: &LanguageMap) {
+    let mut file = BufWriter::new(File::create(FILENAME_MAP_FILE).unwrap());
 
     let mut filename_to_language_map = PhfMap::new();
     for (language_name, language) in languages.iter() {
@@ -186,15 +212,14 @@ fn create_filename_map(languages: &HashMap<String, Language>) {
 
     writeln!(
         &mut file,
-        "static FILENAMES: phf::Map<&'static str, &'static str> = \n{};\n",
+        "static FILENAMES: phf::Map<&'static str, &'static str> =\n{};\n",
         filename_to_language_map.build()
     )
     .unwrap();
 }
 
-fn create_interpreter_map(languages: &HashMap<String, Language>) {
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("interpreter-language-map.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+fn create_interpreter_map(languages: &LanguageMap) {
+    let mut file = BufWriter::new(File::create(INTERPRETER_MAP_FILE).unwrap());
 
     let mut temp_map: HashMap<String, Vec<String>> = HashMap::new();
     for (language_name, language) in languages.iter() {
@@ -219,15 +244,14 @@ fn create_interpreter_map(languages: &HashMap<String, Language>) {
 
     writeln!(
         &mut file,
-        "static INTERPRETERS: phf::Map<&'static str, &[&str]> = \n{};\n",
+        "static INTERPRETERS: phf::Map<&'static str, &[&str]> =\n{};\n",
         interpreter_to_language_map.build()
     )
     .unwrap();
 }
 
-fn create_extension_map(languages: &HashMap<String, Language>) {
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("extension-language-map.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+fn create_extension_map(languages: &LanguageMap) {
+    let mut file = BufWriter::new(File::create(EXTENSION_MAP_FILE).unwrap());
 
     let mut temp_map: HashMap<String, Vec<String>> = HashMap::new();
     for (language_name, language) in languages.iter() {
@@ -255,15 +279,14 @@ fn create_extension_map(languages: &HashMap<String, Language>) {
 
     writeln!(
         &mut file,
-        "static EXTENSIONS: phf::Map<&'static str, &[&str]> = \n{};\n",
+        "static EXTENSIONS: phf::Map<&'static str, &[&str]> =\n{};\n",
         extension_to_language_map.build()
     )
     .unwrap();
 }
 
 fn create_disambiguation_heuristics_map(heuristics: &Heuristics) {
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("disambiguation-heuristics-map.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+    let mut file = BufWriter::new(File::create(DISAMBIGUATION_HEURISTICS_FILE).unwrap());
 
     let mut temp_map: HashMap<String, String> = HashMap::new();
     for dis in heuristics.disambiguations.iter() {
@@ -284,7 +307,7 @@ fn create_disambiguation_heuristics_map(heuristics: &Heuristics) {
 
     writeln!(
         &mut file,
-        "static DISAMBIGUATIONS: phf::Map<&'static str, &'static [Rule]> = \n{};\n",
+        "static DISAMBIGUATIONS: phf::Map<&'static str, &'static [Rule]> =\n{};\n",
         disambiguation_heuristic_map.build()
     )
     .unwrap();
@@ -331,8 +354,7 @@ fn train_classifier() {
         });
 
     // Write language token count
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("language_token_count.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+    let mut file = BufWriter::new(File::create(LANGUAGE_TOKEN_COUNT_FILE).unwrap());
     let mut language_token_count = PhfMap::new();
     for (key, value) in temp_language_token_count.iter() {
         let value = format!("{}f64", value);
@@ -341,14 +363,13 @@ fn train_classifier() {
 
     writeln!(
         &mut file,
-        "static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> = \n{};\n",
+        "static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> =\n{};\n",
         language_token_count.build()
     )
     .unwrap();
 
     // Write total token counts
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("total_token_count.rs");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
+    let mut file = BufWriter::new(File::create(TOTAL_TOKEN_COUNT_FILE).unwrap());
     let mut total_token_count = PhfMap::new();
     for (key, value) in temp_total_tokens_count.iter() {
         let value = format!("{}f64", value);
@@ -357,8 +378,22 @@ fn train_classifier() {
 
     writeln!(
         &mut file,
-        "static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> = \n{};\n",
+        "static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> =\n{};\n",
         total_token_count.build()
     )
     .unwrap();
+}
+
+fn get_last_updated_time(path: &str) -> Result<time::SystemTime, io::Error> {
+    File::open(path)?.metadata()?.modified()
+}
+
+fn should_update_codegen(source_last_updated: time::SystemTime, codegen_path: &str) -> bool {
+    match get_last_updated_time(codegen_path) {
+        Ok(time) => source_last_updated > time,
+        Err(e) => match e.kind() {
+            std::io::ErrorKind::NotFound => true,
+            _ => panic!("{}", e),
+        },
+    }
 }

@@ -4,7 +4,7 @@ use std::io::{self, BufRead, BufReader, Read};
 
 // Include the map from interpreters to languages at compile time
 // static INTERPRETERS: phf::Map<&'static str, &[&str]> = ...;
-include!(concat!(env!("OUT_DIR"), "/interpreter-language-map.rs"));
+include!("codegen/interpreter-language-map.rs");
 
 pub fn get_language_by_shebang<R: Read>(reader: R) -> Result<Vec<&'static str>, io::Error> {
     let mut reader = BufReader::new(reader);

@@ -2,10 +2,7 @@ use pcre2::bytes::Regex as PCRERegex;
 
 // Include the map from interpreters to languages at compile time
 // static DISAMBIGUATIONS: phf::Map<&'static str, Rule> = ...;
-include!(concat!(
-    env!("OUT_DIR"),
-    "/disambiguation-heuristics-map.rs"
-));
+include!("codegen/disambiguation-heuristics-map.rs");
 
 #[derive(Debug)]
 enum Pattern {

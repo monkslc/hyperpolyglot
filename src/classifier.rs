@@ -2,15 +2,15 @@ use std::{error::Error, io::Read};
 
 // Include the map that counts tokens per language
 // static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> = ...;
-include!(concat!(env!("OUT_DIR"), "/language_token_count.rs"));
+include!("codegen/language-token-count.rs");
 
 // Include the map that counts the total number of tokens for a language
 // static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> = ...;
-include!(concat!(env!("OUT_DIR"), "/total_token_count.rs"));
+include!("codegen/total-token-count.rs");
 
 // Include the array of all possible languages
 // static LANGUAGES: &[&'static str] = ...;
-include!(concat!(env!("OUT_DIR"), "/languages.rs"));
+include!("codegen/languages.rs");
 
 #[derive(Debug)]
 pub struct LanguageScore {

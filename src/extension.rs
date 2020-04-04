@@ -1,6 +1,6 @@
 // Include the map from interpreters to languages at compile time
 // static EXTENSIONS: phf::Map<&'static str, &[&str]> = ...;
-include!(concat!(env!("OUT_DIR"), "/extension-language-map.rs"));
+include!("codegen/extension-language-map.rs");
 
 pub fn get_language_by_extension(filename: &str) -> Vec<&'static str> {
     let extension = get_extension(filename);

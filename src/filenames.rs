@@ -1,6 +1,6 @@
 // Include the map from filenames to languages at compile time
 // static FILENAMES: phf::Map<&'static str, &'static str> = ...;
-include!(concat!(env!("OUT_DIR"), "/filename-language-map.rs"));
+include!("codegen/filename-language-map.rs");
 
 pub fn get_language_by_filename(filename: &str) -> Option<&&'static str> {
     FILENAMES.get(filename)
