@@ -6,6 +6,7 @@ use std::{
     env,
     fs::{self, File},
     io::{BufWriter, Write},
+    iter,
     path::Path,
 };
 
@@ -143,6 +144,7 @@ fn main() {
     let languages: HashMap<String, Language> =
         serde_yaml::from_str(&fs::read_to_string("languages.yml").unwrap()[..]).unwrap();
 
+    write_languages(&languages);
     create_filename_map(&languages);
     create_interpreter_map(&languages);
     create_extension_map(&languages);
@@ -150,6 +152,22 @@ fn main() {
     let heuristics: Heuristics =
         serde_yaml::from_str(&fs::read_to_string("heuristics.yml").unwrap()[..]).unwrap();
     create_disambiguation_heuristics_map(&heuristics);
+
+    train_classifier();
+}
+
+fn write_languages(languages: &HashMap<String, Language>) {
+    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("languages.rs");
+    let mut file = BufWriter::new(File::create(&path).unwrap());
+
+    let languages: Vec<String> = languages.keys().map(|language| language.clone()).collect();
+
+    writeln!(
+        &mut file,
+        "static LANGUAGES: &[&'static str] = &[\"{}\"];",
+        languages.join("\",\"")
+    )
+    .unwrap();
 }
 
 fn create_filename_map(languages: &HashMap<String, Language>) {
@@ -268,6 +286,79 @@ fn create_disambiguation_heuristics_map(heuristics: &Heuristics) {
         &mut file,
         "static DISAMBIGUATIONS: phf::Map<&'static str, &'static [Rule]> = \n{};\n",
         disambiguation_heuristic_map.build()
+    )
+    .unwrap();
+}
+
+fn train_classifier() {
+    let mut temp_language_token_count = HashMap::new();
+    let mut temp_total_tokens_count = HashMap::new();
+
+    fs::read_dir("samples")
+        .unwrap()
+        .map(|entry| entry.unwrap())
+        .filter(|entry| entry.path().is_dir())
+        .map(|language_dir| {
+            let path = language_dir.path();
+            let language = path.file_name().unwrap();
+            let language = language.to_string_lossy().into_owned();
+
+            let file_paths = fs::read_dir(language_dir.path())
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .filter(|path| !path.is_dir());
+
+            let language_iter = iter::repeat(language);
+            file_paths.zip(language_iter)
+        })
+        .flatten()
+        .for_each(|(entry, language)| {
+            let content = fs::read(entry).unwrap();
+
+            // When tokenizing an invalid utf8 string, just set it to ""
+            // Add better error handling here in the future but unure of the best
+            // way to handle it now
+            let tokens = tokens::tokenize(std::str::from_utf8(&content[..]).unwrap_or("")).unwrap();
+
+            for token in tokens {
+                let key = format!("{}{}", &language, token);
+                let count = temp_language_token_count.entry(key).or_insert(0);
+                *count += 1;
+
+                let total_tokens = temp_total_tokens_count.entry(language.clone()).or_insert(0);
+                *total_tokens += 1;
+            }
+        });
+
+    // Write language token count
+    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("language_token_count.rs");
+    let mut file = BufWriter::new(File::create(&path).unwrap());
+    let mut language_token_count = PhfMap::new();
+    for (key, value) in temp_language_token_count.iter() {
+        let value = format!("{}f64", value);
+        language_token_count.entry(key.as_str(), value.as_str());
+    }
+
+    writeln!(
+        &mut file,
+        "static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> = \n{};\n",
+        language_token_count.build()
+    )
+    .unwrap();
+
+    // Write total token counts
+    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("total_token_count.rs");
+    let mut file = BufWriter::new(File::create(&path).unwrap());
+    let mut total_token_count = PhfMap::new();
+    for (key, value) in temp_total_tokens_count.iter() {
+        let value = format!("{}f64", value);
+        total_token_count.entry(key.as_str(), value.as_str());
+    }
+
+    writeln!(
+        &mut file,
+        "static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> = \n{};\n",
+        total_token_count.build()
     )
     .unwrap();
 }

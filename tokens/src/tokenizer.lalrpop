@@ -1,0 +1,11 @@
+grammar;
+
+pub Tokens: Vec<&'input str> = {
+	(Token)* => <>,
+};
+
+
+Token: &'input str = {
+	<a: r"[[:alnum:]]+|[^[:alnum:]\s]"> => a,
+};
+
