@@ -1,4 +1,4 @@
-use std::{error::Error, io::Read};
+use std::error::Error;
 
 // Include the map that counts tokens per language
 // static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> = ...;
@@ -18,8 +18,8 @@ pub struct LanguageScore {
     score: f64,
 }
 
-pub fn classify<R: Read>(
-    mut reader: R,
+pub fn classify(
+    content: &str,
     candidates: &Vec<&'static str>,
 ) -> Result<&'static str, Box<dyn Error>> {
     let candidates = match candidates.len() {
@@ -27,12 +27,7 @@ pub fn classify<R: Read>(
         _ => candidates,
     };
 
-    // Return error if invalid utf-8 for now
-    // Add better invalid utf-8 support in the future
-    let mut content = String::new();
-    reader.read_to_string(&mut content)?;
-
-    let tokens = tokens::tokenize(content.as_str())?;
+    let tokens = tokens::tokenize(content)?;
     let mut scored_candidates: Vec<LanguageScore> = candidates
         .iter()
         .map(|language| {
@@ -69,39 +64,36 @@ fn token_probability(language: &str, token: &str) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
-    use std::io::Cursor;
+    use std::fs;
 
     #[test]
     fn test_classify() {
-        let f = File::open("samples/Rust/main.rs").unwrap();
+        let content = fs::read_to_string("samples/Rust/main.rs").unwrap();
         let candidates = vec!["C", "Rust"];
-        let language = classify(f, &candidates).unwrap();
+        let language = classify(content.as_str(), &candidates).unwrap();
         assert_eq!(language, "Rust");
 
-        let f = File::open("samples/Erlang/170-os-daemons.es").unwrap();
+        let content = fs::read_to_string("samples/Erlang/170-os-daemons.es").unwrap();
         let candidates = vec!["Erlang", "JavaScript"];
-        let language = classify(f, &candidates).unwrap();
+        let language = classify(content.as_str(), &candidates).unwrap();
         assert_eq!(language, "Erlang");
 
-        let f = File::open("samples/TypeScript/classes.ts").unwrap();
+        let content = fs::read_to_string("samples/TypeScript/classes.ts").unwrap();
         let candidates = vec!["C++", "Java", "C#", "TypeScript"];
-        let language = classify(f, &candidates).unwrap();
+        let language = classify(content.as_str(), &candidates).unwrap();
         assert_eq!(language, "TypeScript");
     }
 
     #[test]
     fn test_classify_non_sample_data() {
-        let sample = Cursor::new(
-            r#"#[cfg(not(feature = "pcre2"))]
+        let sample = r#"#[cfg(not(feature = "pcre2"))]
     fn imp(args: &Args) -> Result<bool> {
         let mut stdout = args.stdout();
         writeln!(stdout, "PCRE2 is not available in this build of ripgrep.")?;
         Ok(false)
     }
 
-    imp(args)"#,
-        );
+    imp(args)"#;
         let candidates = vec!["Rust", "C", "C++"];
         let language = classify(sample, &candidates).unwrap();
         assert_eq!(language, "Rust");
@@ -109,9 +101,9 @@ mod tests {
 
     #[test]
     fn test_classify_empty_candidates() {
-        let f = File::open("samples/Rust/main.rs").unwrap();
+        let content = fs::read_to_string("samples/Rust/main.rs").unwrap();
         let candidates = vec![];
-        let language = classify(f, &candidates).unwrap();
+        let language = classify(content.as_str(), &candidates).unwrap();
         assert_eq!(language, "Rust");
     }
 }
