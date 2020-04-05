@@ -1,15 +1,17 @@
+use ignore::Walk;
 use std::{
+    collections::HashMap,
     error::Error,
     fs::File,
     io::{BufRead, BufReader, Read, Seek, SeekFrom},
     path::Path,
 };
 
-pub mod classifier;
-pub mod extension;
-pub mod filenames;
-pub mod heuristics;
-pub mod interpreter;
+mod classifier;
+mod extension;
+mod filenames;
+mod heuristics;
+mod interpreter;
 
 pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
@@ -53,6 +55,26 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     }
 
     classifier::classify(&content, &candidates)
+}
+
+pub fn get_language_breakdown() -> HashMap<&'static str, i32> {
+    let mut counts = HashMap::new();
+    Walk::new("./")
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            entry
+                .file_type()
+                .map(|file| file.is_file())
+                .unwrap_or(false)
+        })
+        .for_each(|entry| {
+            if let Ok(language) = detect(entry.path()) {
+                let count = counts.entry(language).or_insert(0);
+                *count += 1;
+            }
+        });
+    counts
 }
 
 fn filter_candidates(
