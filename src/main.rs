@@ -13,11 +13,3 @@ fn print_breakdown(languages: HashMap<&'static str, i32>) {
         println!("{} {}", language, (**count as f64) / total);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_language_breakdown() {}
-}
