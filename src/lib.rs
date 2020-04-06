@@ -116,6 +116,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io::prelude::*;
+    use std::iter;
 
     #[test]
     fn test_detect_filename() {
@@ -180,6 +181,42 @@ mod tests {
         fs::remove_file(path).unwrap();
 
         assert_eq!(detected_language, "Rust");
+    }
+
+    #[test]
+    #[ignore] // too expensive to run every time
+    fn test_detect_accuracy() {
+        let mut total = 0;
+        let mut correct = 0;
+        fs::read_dir("samples")
+            .unwrap()
+            .map(|entry| entry.unwrap())
+            .filter(|entry| entry.path().is_dir())
+            .map(|language_dir| {
+                let path = language_dir.path();
+                let language = path.file_name().unwrap();
+                let language = language.to_string_lossy().into_owned();
+
+                let file_paths = fs::read_dir(language_dir.path())
+                    .unwrap()
+                    .map(|entry| entry.unwrap().path())
+                    .filter(|path| path.is_file());
+
+                let language_iter = iter::repeat(language);
+                file_paths.zip(language_iter)
+            })
+            .flatten()
+            .for_each(|(file, language)| {
+                if let Ok(detected_language) = detect(&file) {
+                    total += 1;
+                    if detected_language == language {
+                        correct += 1;
+                    }
+                }
+            });
+
+        let accuracy = (correct as f64) / (total as f64);
+        assert!(accuracy > 0.97);
     }
 
     #[test]

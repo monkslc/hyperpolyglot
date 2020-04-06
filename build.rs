@@ -329,7 +329,7 @@ fn train_classifier() {
             let file_paths = fs::read_dir(language_dir.path())
                 .unwrap()
                 .map(|entry| entry.unwrap().path())
-                .filter(|path| !path.is_dir());
+                .filter(|path| path.is_file());
 
             let language_iter = iter::repeat(language);
             file_paths.zip(language_iter)
