@@ -1,8 +1,8 @@
 use std::error::Error;
 
-// Include the map that counts tokens per language
-// static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> = ...;
-include!("codegen/language-token-count.rs");
+// Include the map that counts token occurences per language
+// static TOKEN_COUNTS: phf::Map<&'static str, f64> = ...;
+include!("codegen/token-count.rs");
 
 // Include the map that counts the total number of tokens for a language
 // static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> = ...;
@@ -52,8 +52,10 @@ pub fn classify(
 }
 
 fn token_probability(language: &str, token: &str) -> f64 {
-    let key = format!("{}{}", language, token);
-    let count = LANGUAGE_TOKEN_COUNT.get(&key[..]).unwrap_or(&1E-5f64);
+    let count = match TOKEN_COUNTS.get(language) {
+        Some(map) => map.get(token).unwrap_or(&1E-5f64),
+        None => &1E-5f64,
+    };
 
     // Can't just unwrap here because there are languages in the languages.yml
     // file that we don't have samples for and therefore no tokens have been seen
@@ -63,8 +65,10 @@ fn token_probability(language: &str, token: &str) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    extern crate test;
     use super::*;
     use std::fs;
+    use test::Bencher;
 
     #[test]
     fn test_classify() {
@@ -105,5 +109,16 @@ mod tests {
         let candidates = vec![];
         let language = classify(content.as_str(), &candidates).unwrap();
         assert_eq!(language, "Rust");
+    }
+
+    #[bench]
+    fn bench_token_probability(b: &mut Bencher) {
+        b.iter(|| {
+            token_probability("Rust", "fn");
+            token_probability("Jupyter Notebook", "kSEFGUQI3rHsywBz1dB");
+            token_probability("Objective-C", "setDefaultCredential");
+            token_probability("TypeScript", "Not actually there990");
+            token_probability("Not realassdf", "struct");
+        });
     }
 }

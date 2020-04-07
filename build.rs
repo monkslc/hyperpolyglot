@@ -145,7 +145,7 @@ const EXTENSION_MAP_FILE: &str = "src/codegen/extension-language-map.rs";
 const FILENAME_MAP_FILE: &str = "src/codegen/filename-language-map.rs";
 const INTERPRETER_MAP_FILE: &str = "src/codegen/interpreter-language-map.rs";
 const LANGUAGE_LIST_FILE: &str = "src/codegen/languages.rs";
-const LANGUAGE_TOKEN_COUNT_FILE: &str = "src/codegen/language-token-count.rs";
+const TOKEN_COUNT_FILE: &str = "src/codegen/token-count.rs";
 const TOTAL_TOKEN_COUNT_FILE: &str = "src/codegen/total-token-count.rs";
 
 const HEURISTICS_SOURCE_FILE: &str = "heuristics.yml";
@@ -177,7 +177,7 @@ fn main() {
     };
 
     let samples_last_updated = get_last_updated_time(SAMPLES_DIR).unwrap();
-    if should_update_codegen(samples_last_updated, LANGUAGE_TOKEN_COUNT_FILE)
+    if should_update_codegen(samples_last_updated, TOKEN_COUNT_FILE)
         || should_update_codegen(samples_last_updated, TOTAL_TOKEN_COUNT_FILE)
     {
         train_classifier();
@@ -314,7 +314,7 @@ fn create_disambiguation_heuristics_map(heuristics: &Heuristics) {
 }
 
 fn train_classifier() {
-    let mut temp_language_token_count = HashMap::new();
+    let mut temp_token_count: HashMap<String, HashMap<String, i32>> = HashMap::new();
     let mut temp_total_tokens_count = HashMap::new();
 
     fs::read_dir("samples")
@@ -344,29 +344,17 @@ fn train_classifier() {
             let tokens = tokens::tokenize(std::str::from_utf8(&content[..]).unwrap_or("")).unwrap();
 
             for token in tokens {
-                let key = format!("{}{}", &language, token);
-                let count = temp_language_token_count.entry(key).or_insert(0);
-                *count += 1;
-
                 let total_tokens = temp_total_tokens_count.entry(language.clone()).or_insert(0);
                 *total_tokens += 1;
+
+                let tokens_count = temp_token_count
+                    .entry(language.clone())
+                    .or_insert(HashMap::new());
+
+                let count = tokens_count.entry(String::from(token)).or_insert(0);
+                *count += 1;
             }
         });
-
-    // Write language token count
-    let mut file = BufWriter::new(File::create(LANGUAGE_TOKEN_COUNT_FILE).unwrap());
-    let mut language_token_count = PhfMap::new();
-    for (key, value) in temp_language_token_count.iter() {
-        let value = format!("{}f64", value);
-        language_token_count.entry(key.as_str(), value.as_str());
-    }
-
-    writeln!(
-        &mut file,
-        "static LANGUAGE_TOKEN_COUNT: phf::Map<&'static str, f64> =\n{};\n",
-        language_token_count.build()
-    )
-    .unwrap();
 
     // Write total token counts
     let mut file = BufWriter::new(File::create(TOTAL_TOKEN_COUNT_FILE).unwrap());
@@ -380,6 +368,26 @@ fn train_classifier() {
         &mut file,
         "static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> =\n{};\n",
         total_token_count.build()
+    )
+    .unwrap();
+
+    // Write token counts
+    let mut file = BufWriter::new(File::create(TOKEN_COUNT_FILE).unwrap());
+    let mut language_to_token_map = PhfMap::new();
+    for (language, token_map) in temp_token_count.iter() {
+        let mut token_to_count_map = PhfMap::new();
+        for (token, count) in token_map.iter() {
+            let value = format!("{}f64", count);
+            token_to_count_map.entry(&token[..], &value[..]);
+        }
+        let value = format!("{}", token_to_count_map.build());
+        language_to_token_map.entry(&language[..], &value[..]);
+    }
+
+    writeln!(
+        &mut file,
+        "static TOKEN_COUNTS: phf::Map<&'static str, phf::Map<&'static str, f64>> =\n{};\n",
+        language_to_token_map.build()
     )
     .unwrap();
 }

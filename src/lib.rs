@@ -1,3 +1,5 @@
+#![feature(test)]
+
 use ignore::Walk;
 use std::{
     collections::HashMap,
@@ -113,10 +115,12 @@ fn get_extension(filename: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
+    extern crate test;
     use super::*;
     use std::fs;
     use std::io::prelude::*;
     use std::iter;
+    use test::Bencher;
 
     #[test]
     fn test_detect_filename() {
@@ -270,5 +274,26 @@ mod tests {
         // and are not expected funcitonality
         assert_eq!(get_extension(".es."), Some(""));
         assert_eq!(get_extension(".."), Some(""));
+    }
+
+    #[bench]
+    #[ignore]
+    fn bench_against_samples(b: &mut Bencher) {
+        b.iter(|| {
+            fs::read_dir("samples")
+                .unwrap()
+                .map(|entry| entry.unwrap())
+                .filter(|entry| entry.path().is_dir())
+                .map(|language_dir| {
+                    fs::read_dir(language_dir.path())
+                        .unwrap()
+                        .map(|entry| entry.unwrap().path())
+                        .filter(|path| path.is_file())
+                })
+                .flatten()
+                .for_each(|file| {
+                    let _ = detect(&file).unwrap_or("");
+                });
+        });
     }
 }
