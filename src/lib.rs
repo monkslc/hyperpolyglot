@@ -23,10 +23,10 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
         return Ok(candidate);
     };
 
-    let extension = filename.and_then(|filename| get_extension(filename));
+    let extension = filename.and_then(|filename| extension::get(filename));
 
     let candidates = extension
-        .map(|ext| extension::get_language_by_extension(ext))
+        .map(|ext| extension::get_language(ext))
         .unwrap_or(vec![]);
 
     if candidates.len() == 1 {
@@ -101,16 +101,6 @@ fn filter_candidates(
         0 => previous_candidates,
         _ => filtered_candidates,
     }
-}
-
-fn get_extension(filename: &str) -> Option<&str> {
-    let filename = if filename.starts_with(".") {
-        &filename[1..]
-    } else {
-        filename
-    };
-
-    filename.find(".").map(|i| &filename[i + 1..])
 }
 
 #[cfg(test)]
@@ -261,19 +251,6 @@ mod tests {
             filter_candidates(previous_candidates, new_candidates),
             vec!["Python"]
         );
-    }
-
-    #[test]
-    fn test_get_extension() {
-        assert_eq!(get_extension("index.djs"), Some("djs"));
-        assert_eq!(get_extension("example.cmake.in"), Some("cmake.in"));
-        assert_eq!(get_extension(".eslintrc.json"), Some("json"));
-        assert_eq!(get_extension(".cs"), None);
-        assert_eq!(get_extension("noextension"), None);
-        // Following tests are to test behavior that may break
-        // and are not expected funcitonality
-        assert_eq!(get_extension(".es."), Some(""));
-        assert_eq!(get_extension(".."), Some(""));
     }
 
     #[bench]

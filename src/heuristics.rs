@@ -68,14 +68,14 @@ mod tests {
     fn test_disambiguate_overlap() {
         // Matches Positive Pattern
         assert_eq!(
-            disambiguate_overlap("es", &vec!["Erlang", "JavaScript"], "'use strict';"),
+            disambiguate_overlap(".es", &vec!["Erlang", "JavaScript"], "'use strict';"),
             Some("JavaScript")
         );
 
         // Matches Negative Pattern
         assert_eq!(
             disambiguate_overlap(
-                "sql",
+                ".sql",
                 &vec!["PLSQL", "PLpgSQL", "SQL", "SQLPL", "TSQL"],
                 "LALA THIS IS SQL"
             ),
@@ -85,7 +85,7 @@ mod tests {
         // Matches And with all positives
         assert_eq!(
             disambiguate_overlap(
-                "pro",
+                ".pro",
                 &vec!["Proguard", "Prolog", "INI", "QMake", "IDL"],
                 "HEADERS SOURCES"
             ),
@@ -95,7 +95,7 @@ mod tests {
         // Doesn't match And if less than all match
         assert_eq!(
             disambiguate_overlap(
-                "pro",
+                ".pro",
                 &vec!["Proguard", "Prolog", "INI", "QMake", "IDL"],
                 "HEADERS"
             ),
@@ -105,7 +105,7 @@ mod tests {
         // Matches And with negative pattern
         assert_eq!(
             disambiguate_overlap(
-                "ms",
+                ".ms",
                 &vec!["Roff", "Unix Assembly", "MAXScript"],
                 ".include:"
             ),
@@ -114,19 +114,19 @@ mod tests {
 
         // Matches Or if one is true
         assert_eq!(
-            disambiguate_overlap("p", &vec!["Gnuplot", "OpenEdge ABL"], "plot"),
+            disambiguate_overlap(".p", &vec!["Gnuplot", "OpenEdge ABL"], "plot"),
             Some("Gnuplot")
         );
 
         // Matches named pattern
         assert_eq!(
-            disambiguate_overlap("h", &vec!["Objective-C", "C++"], "std::out"),
+            disambiguate_overlap(".h", &vec!["Objective-C", "C++"], "std::out"),
             Some("C++")
         );
 
         // Matches default language pattern (no pattern specified)
         assert_eq!(
-            disambiguate_overlap("man", &vec!["Roff Manpage", "Roff"], "alskdjfahij"),
+            disambiguate_overlap(".man", &vec!["Roff Manpage", "Roff"], "alskdjfahij"),
             Some("Roff")
         );
     }
