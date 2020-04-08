@@ -1,7 +1,7 @@
 use std::error::Error;
 
 // Include the map that counts token occurences per language
-// static TOKEN_COUNTS: phf::Map<&'static str, f64> = ...;
+// static TOKEN_COUNTS: phf::Map<&'static str, phf::Map<&'static str, f64>> = ...;
 include!("codegen/token-count.rs");
 
 // Include the map that counts the total number of tokens for a language
