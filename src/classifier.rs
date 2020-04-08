@@ -12,6 +12,8 @@ include!("codegen/total-token-count.rs");
 // static LANGUAGES: &[&'static str] = ...;
 include!("codegen/languages.rs");
 
+const MAX_TOKEN_BYTES: usize = 32;
+
 #[derive(Debug)]
 pub struct LanguageScore {
     language: &'static str,
@@ -27,14 +29,19 @@ pub fn classify(
         _ => candidates,
     };
 
+    let content = truncate_to_char_boundary(content, 51200);
+
     let tokens = tokens::tokenize(content)?;
     let mut scored_candidates: Vec<LanguageScore> = candidates
         .iter()
         .map(|language| {
-            let score = tokens.iter().fold(0f64, |sum, token| {
-                let token_prob = token_probability(language, token).ln();
-                sum + token_prob
-            });
+            let score = tokens
+                .iter()
+                .filter(|token| token.len() <= MAX_TOKEN_BYTES)
+                .fold(0f64, |sum, token| {
+                    let token_prob = token_probability(language, token).ln();
+                    sum + token_prob
+                });
             LanguageScore {
                 language: language,
                 score,
@@ -61,6 +68,17 @@ fn token_probability(language: &str, token: &str) -> f64 {
     // file that we don't have samples for and therefore no tokens have been seen
     let total = TOTAL_TOKEN_COUNT.get(language).unwrap_or(&1f64);
     count / total
+}
+
+fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
+    if max >= s.len() {
+        s
+    } else {
+        while !s.is_char_boundary(max) {
+            max -= 1;
+        }
+        &s[..max]
+    }
 }
 
 #[cfg(test)]
@@ -119,6 +137,23 @@ mod tests {
             token_probability("Objective-C", "setDefaultCredential");
             token_probability("TypeScript", "Not actually there990");
             token_probability("Not realassdf", "struct");
+        });
+    }
+
+    #[bench]
+    #[ignore] // too expensive
+    fn bench_classify_long(b: &mut Bencher) {
+        let content = fs::read_to_string("samples/Rust/hashmap.rs").unwrap();
+        let content = &content[..];
+        b.iter(|| {
+            let _ = classify(content, &vec![]);
+        });
+    }
+
+    #[bench]
+    fn bench_classify_short(b: &mut Bencher) {
+        b.iter(|| {
+            let _ = classify("fn main() {}", &vec![]);
         });
     }
 }
