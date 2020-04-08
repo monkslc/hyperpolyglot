@@ -35,13 +35,21 @@ pub fn classify(
     let mut scored_candidates: Vec<LanguageScore> = candidates
         .iter()
         .map(|language| {
-            let score = tokens
-                .iter()
-                .filter(|token| token.len() <= MAX_TOKEN_BYTES)
-                .fold(0f64, |sum, token| {
-                    let token_prob = token_probability(language, token).ln();
-                    sum + token_prob
-                });
+            let score = match TOKEN_COUNTS.get(language) {
+                Some(token_map) => {
+                    // unwrap is safe here because the entry will be there if there was an entry in
+                    // TOKEN_COUNTS for that language
+                    let total_tokens = *TOTAL_TOKEN_COUNT.get(language).unwrap();
+                    tokens
+                        .iter()
+                        .filter(|token| token.len() <= MAX_TOKEN_BYTES)
+                        .fold(0f64, |sum, token| {
+                            let token_prob = token_probability(token_map, token, total_tokens).ln();
+                            sum + token_prob
+                        })
+                }
+                None => std::f64::NEG_INFINITY,
+            };
             LanguageScore {
                 language: language,
                 score,
@@ -58,15 +66,8 @@ pub fn classify(
     Ok(scored_candidates[0].language)
 }
 
-fn token_probability(language: &str, token: &str) -> f64 {
-    let count = match TOKEN_COUNTS.get(language) {
-        Some(map) => map.get(token).unwrap_or(&1E-5f64),
-        None => &1E-5f64,
-    };
-
-    // Can't just unwrap here because there are languages in the languages.yml
-    // file that we don't have samples for and therefore no tokens have been seen
-    let total = TOTAL_TOKEN_COUNT.get(language).unwrap_or(&1f64);
+fn token_probability(token_map: &phf::Map<&'static str, f64>, token: &str, total: f64) -> f64 {
+    let count = token_map.get(token).unwrap_or(&1E-5f64);
     count / total
 }
 
@@ -131,12 +132,20 @@ mod tests {
 
     #[bench]
     fn bench_token_probability(b: &mut Bencher) {
+        let token_map_rust = TOKEN_COUNTS.get("Rust").unwrap();
+        let token_map_jup = TOKEN_COUNTS.get("Jupyter Notebook").unwrap();
+        let token_map_objc = TOKEN_COUNTS.get("Objective-C").unwrap();
+        let token_map_ts = TOKEN_COUNTS.get("TypeScript").unwrap();
+
+        let tokens_rust = *TOTAL_TOKEN_COUNT.get("Rust").unwrap();
+        let tokens_jup = *TOTAL_TOKEN_COUNT.get("Jupyter Notebook").unwrap();
+        let tokens_objc = *TOTAL_TOKEN_COUNT.get("Objective-C").unwrap();
+        let tokens_ts = *TOTAL_TOKEN_COUNT.get("TypeScript").unwrap();
         b.iter(|| {
-            token_probability("Rust", "fn");
-            token_probability("Jupyter Notebook", "kSEFGUQI3rHsywBz1dB");
-            token_probability("Objective-C", "setDefaultCredential");
-            token_probability("TypeScript", "Not actually there990");
-            token_probability("Not realassdf", "struct");
+            token_probability(token_map_rust, "fn", tokens_rust);
+            token_probability(token_map_jup, "kSEFGUQI3rHsywBz1dB", tokens_jup);
+            token_probability(token_map_objc, "setDefaultCredential", tokens_objc);
+            token_probability(token_map_ts, "Not actually there990", tokens_ts);
         });
     }
 
