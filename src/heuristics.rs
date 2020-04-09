@@ -1,4 +1,4 @@
-use pcre2::bytes::Regex as PCRERegex;
+use pcre2::bytes::RegexBuilder as PCRERegex;
 
 // Include the map from interpreters to languages at compile time
 // static DISAMBIGUATIONS: phf::Map<&'static str, Rule> = ...;
@@ -22,11 +22,19 @@ impl Pattern {
     fn matches(&self, content: &str) -> bool {
         match self {
             Pattern::Positive(pattern) => {
-                let regex = PCRERegex::new(pattern).unwrap();
+                let regex = PCRERegex::new()
+                    .crlf(true)
+                    .multi_line(true)
+                    .build(pattern)
+                    .unwrap();
                 regex.is_match(content.as_bytes()).unwrap_or(false)
             }
             Pattern::Negative(pattern) => {
-                let regex = PCRERegex::new(pattern).unwrap();
+                let regex = PCRERegex::new()
+                    .crlf(true)
+                    .multi_line(true)
+                    .build(pattern)
+                    .unwrap();
                 !regex.is_match(content.as_bytes()).unwrap_or(true)
             }
             Pattern::Or(patterns) => patterns.iter().any(|pattern| pattern.matches(content)),
@@ -128,6 +136,17 @@ mod tests {
         assert_eq!(
             disambiguate_overlap(".man", &vec!["Roff Manpage", "Roff"], "alskdjfahij"),
             Some("Roff")
+        );
+
+        // Matches anchors for each line
+        assert_eq!(
+            disambiguate_overlap(
+                ".1in",
+                &vec!["Roff Manpage", "Roff"],
+                r#".TH LYXCLIENT 1 "@LYX_DATE@" "Version @VERSION@" "lyxclient @VERSION@"
+.SH NAME"#
+            ),
+            Some("Roff Manpage")
         );
     }
 }
