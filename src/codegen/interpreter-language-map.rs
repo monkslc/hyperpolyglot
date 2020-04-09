@@ -132,7 +132,7 @@ static INTERPRETERS: phf::Map<&'static str, &[&str]> =
         ("gn", &["GN"]),
         ("pwsh", &["PowerShell"]),
         ("lsl", &["LSL"]),
-        ("lua", &["Terra", "Lua"]),
+        ("lua", &["Lua", "Terra"]),
         ("gawk", &["Awk"]),
         ("guile", &["Scheme"]),
         ("scala", &["Scala"]),

@@ -249,7 +249,7 @@ fn create_extension_map(languages: &LanguageMap) {
     for (language_name, language) in languages.iter() {
         if let Some(extensions) = &language.extensions {
             for extension in extensions.iter() {
-                let extension = extension.clone();
+                let extension = extension.clone().to_ascii_lowercase();
                 match temp_map.get_mut(&extension) {
                     Some(entry) => {
                         entry.push(language_name.clone());
@@ -281,7 +281,7 @@ fn create_disambiguation_heuristics_map(heuristics: &Heuristics) {
     let mut temp_map: HashMap<String, String> = HashMap::new();
     for dis in heuristics.disambiguations.iter() {
         for ext in dis.extensions.iter() {
-            let extension = ext.clone();
+            let extension = ext.clone().to_ascii_lowercase();
             let key = format!("{}", extension);
             let value = format!("{}", dis.to_domain_object_code(&heuristics.named_patterns));
             temp_map.insert(key, value);
