@@ -4,8 +4,8 @@ use serde::Deserialize;
 use std::{
     collections::HashMap,
     fs::{self, File},
-    io::{self, BufWriter, Write},
-    iter, time,
+    io::{BufWriter, Write},
+    iter,
 };
 
 type LanguageMap = HashMap<String, Language>;
@@ -150,37 +150,29 @@ const TOTAL_TOKEN_COUNT_FILE: &str = "src/codegen/total-token-count.rs";
 
 const HEURISTICS_SOURCE_FILE: &str = "heuristics.yml";
 const LANGUAGE_SOURCE_FILE: &str = "languages.yml";
-const SAMPLES_DIR: &str = "samples";
+
+const MAX_TOKEN_BYTES: usize = 32;
 
 fn main() {
-    let languages_last_updated = get_last_updated_time(&LANGUAGE_SOURCE_FILE).unwrap();
-    let languages: LanguageMap =
-        serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..]).unwrap();
+    match std::env::var("TRAIN") {
+        Ok(_) => {
+            let languages: LanguageMap =
+                serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..])
+                    .unwrap();
 
-    let language_dependents: Vec<(&dyn Fn(&LanguageMap) -> (), &str)> = vec![
-        (&write_languages, LANGUAGE_LIST_FILE),
-        (&create_filename_map, FILENAME_MAP_FILE),
-        (&create_interpreter_map, INTERPRETER_MAP_FILE),
-        (&create_extension_map, EXTENSION_MAP_FILE),
-    ];
-    language_dependents.iter().for_each(|(func, codegen_file)| {
-        if should_update_codegen(languages_last_updated, codegen_file) {
-            func(&languages);
+            write_languages(&languages);
+            create_filename_map(&languages);
+            create_interpreter_map(&languages);
+            create_extension_map(&languages);
+
+            let heuristics: Heuristics =
+                serde_yaml::from_str(&fs::read_to_string(HEURISTICS_SOURCE_FILE).unwrap()[..])
+                    .unwrap();
+            create_disambiguation_heuristics_map(&heuristics);
+
+            train_classifier();
         }
-    });
-
-    let heuristics_last_updated = get_last_updated_time(HEURISTICS_SOURCE_FILE).unwrap();
-    let heuristics: Heuristics =
-        serde_yaml::from_str(&fs::read_to_string(HEURISTICS_SOURCE_FILE).unwrap()[..]).unwrap();
-    if should_update_codegen(heuristics_last_updated, DISAMBIGUATION_HEURISTICS_FILE) {
-        create_disambiguation_heuristics_map(&heuristics);
-    };
-
-    let samples_last_updated = get_last_updated_time(SAMPLES_DIR).unwrap();
-    if should_update_codegen(samples_last_updated, TOKEN_COUNT_FILE)
-        || should_update_codegen(samples_last_updated, TOTAL_TOKEN_COUNT_FILE)
-    {
-        train_classifier();
+        Err(e) => println!("couldn't interpret {}: {}", "TRAIN", e),
     }
 }
 
@@ -258,7 +250,6 @@ fn create_extension_map(languages: &LanguageMap) {
         if let Some(extensions) = &language.extensions {
             for extension in extensions.iter() {
                 let extension = extension.clone();
-                println!("EXTENSION: {}", extension);
                 match temp_map.get_mut(&extension) {
                     Some(entry) => {
                         entry.push(language_name.clone());
@@ -341,15 +332,17 @@ fn train_classifier() {
             let tokens = tokens::tokenize(std::str::from_utf8(&content[..]).unwrap_or("")).unwrap();
 
             for token in tokens {
-                let total_tokens = temp_total_tokens_count.entry(language.clone()).or_insert(0);
-                *total_tokens += 1;
+                if token.len() <= MAX_TOKEN_BYTES {
+                    let total_tokens = temp_total_tokens_count.entry(language.clone()).or_insert(0);
+                    *total_tokens += 1;
 
-                let tokens_count = temp_token_count
-                    .entry(language.clone())
-                    .or_insert(HashMap::new());
+                    let tokens_count = temp_token_count
+                        .entry(language.clone())
+                        .or_insert(HashMap::new());
 
-                let count = tokens_count.entry(String::from(token)).or_insert(0);
-                *count += 1;
+                    let count = tokens_count.entry(String::from(token)).or_insert(0);
+                    *count += 1;
+                }
             }
         });
 
@@ -387,18 +380,4 @@ fn train_classifier() {
         language_to_token_map.build()
     )
     .unwrap();
-}
-
-fn get_last_updated_time(path: &str) -> Result<time::SystemTime, io::Error> {
-    File::open(path)?.metadata()?.modified()
-}
-
-fn should_update_codegen(source_last_updated: time::SystemTime, codegen_path: &str) -> bool {
-    match get_last_updated_time(codegen_path) {
-        Ok(time) => source_last_updated > time,
-        Err(e) => match e.kind() {
-            std::io::ErrorKind::NotFound => true,
-            _ => panic!("{}", e),
-        },
-    }
 }

@@ -16,7 +16,6 @@ tokens = { path = "./tokens" }
 ignore = "0.4.1"
 
 [build-dependencies]
-clap = { version = "2.33.0", features = ["yaml"] }
 lalrpop = { version = "0.18.1", features = ["lexer"] }
 pcre2 = "0.2.3"
 phf_codegen = "0.8.0"
