@@ -1,7 +1,7 @@
 use pcre2::bytes::RegexBuilder as PCRERegex;
 
 // Include the map from interpreters to languages at compile time
-// static DISAMBIGUATIONS: phf::Map<&'static str, Rule> = ...;
+// static DISAMBIGUATIONS: phf::Map<&'static str, &'static [Rule]> = ...;
 include!("codegen/disambiguation-heuristics-map.rs");
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ enum Pattern {
 
 #[derive(Debug)]
 struct Rule {
-    language: &'static str,
+    languages: &'static [&'static str],
     pattern: Option<Pattern>,
 }
 
@@ -43,28 +43,31 @@ impl Pattern {
     }
 }
 
-pub fn disambiguate_overlap(
+pub fn get_languages(
     extension: &str,
     candidates: &Vec<&'static str>,
     content: &str,
-) -> Option<&'static str> {
+) -> Vec<&'static str> {
     match DISAMBIGUATIONS.get(extension) {
         Some(rules) => {
-            for rule in rules.iter() {
-                if candidates.contains(&rule.language) {
-                    if let Some(pattern) = &rule.pattern {
-                        if pattern.matches(content) {
-                            return Some(rule.language);
-                        };
-                    } else {
-                        // if there is not a pattern its a match by default
-                        return Some(rule.language);
+            let rules = rules.iter().filter(|rule| {
+                rule.languages
+                    .iter()
+                    .all(|language| candidates.contains(language))
+            });
+            for rule in rules {
+                if let Some(pattern) = &rule.pattern {
+                    if pattern.matches(content) {
+                        return rule.languages.to_vec();
                     };
+                } else {
+                    // if there is no pattern then it is a match by default
+                    return rule.languages.to_vec();
                 };
             }
-            None
+            vec![]
         }
-        None => None,
+        None => vec![],
     }
 }
 
@@ -72,81 +75,142 @@ pub fn disambiguate_overlap(
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_disambiguate_overlap() {
-        // Matches Positive Pattern
-        assert_eq!(
-            disambiguate_overlap(".es", &vec!["Erlang", "JavaScript"], "'use strict';"),
-            Some("JavaScript")
-        );
+    /*
+        #[test]
+        fn test_heuristics_get_language() {
+            // Matches Positive Pattern
+            assert_eq!(get_languages(".es", "'use strict';"), vec!["JavaScript"]);
 
-        // Matches Negative Pattern
+            // Matches Negative Pattern
+            assert_eq!(get_languages(".sql", "LALA THIS IS SQL"), vec!["SQL"]);
+
+            // Matches And with all positives
+            assert_eq!(get_languages(".pro", "HEADERS SOURCES"), vec!["QMake"]);
+
+            // Doesn't match And if less than all match
+            let empty_vec: Vec<&'static str> = vec![];
+            assert_eq!(get_languages(".pro", "HEADERS"), empty_vec);
+
+            // Matches And with negative pattern
+            assert_eq!(get_languages(".ms", ".include:"), vec!["Unix Assembly"]);
+
+            // Matches Or if one is true
+            assert_eq!(get_languages(".p", "plot"), vec!["Gnuplot"]);
+
+            // Matches named pattern
+            assert_eq!(get_languages(".h", "std::out"), vec!["C++"]);
+
+            // Matches default language pattern (no pattern specified)
+            assert_eq!(get_languages(".man", "alskdjfahij"), vec!["Roff"]);
+
+            // Matches anchors for each line
+            assert_eq!(
+                get_languages(
+                    ".1in",
+                    r#".TH LYXCLIENT 1 "@LYX_DATE@" "Version @VERSION@" "lyxclient @VERSION@"
+    .SH NAME"#
+                ),
+                vec!["Roff Manpage"]
+            );
+
+            // Matches to multiple langauges
+            assert_eq!(
+                get_languages(".mod", "alsdkfjal;sdjfa;lsdjf"),
+                vec!["Linux Kernel Module", "AMPL"]
+            );
+        }
+        */
+    #[test]
+    fn test_heuristics_get_languages_positive_pattern() {
         assert_eq!(
-            disambiguate_overlap(
+            get_languages(".es", &vec!["Erlang", "JavaScript"], "'use strict';"),
+            vec!["JavaScript"]
+        );
+    }
+
+    #[test]
+    fn test_heuristics_get_languages_negative_pattern() {
+        assert_eq!(
+            get_languages(
                 ".sql",
                 &vec!["PLSQL", "PLpgSQL", "SQL", "SQLPL", "TSQL"],
                 "LALA THIS IS SQL"
             ),
-            Some("SQL")
+            vec!["SQL"]
         );
+    }
 
-        // Matches And with all positives
+    #[test]
+    fn test_heuristics_get_languages_and_positives_pattern() {
         assert_eq!(
-            disambiguate_overlap(
+            get_languages(
                 ".pro",
                 &vec!["Proguard", "Prolog", "INI", "QMake", "IDL"],
                 "HEADERS SOURCES"
             ),
-            Some("QMake")
+            vec!["QMake"]
         );
+    }
 
-        // Doesn't match And if less than all match
+    #[test]
+    fn test_heuristics_get_languages_and_not_all_match() {
+        let empty_vec: Vec<&'static str> = vec![];
         assert_eq!(
-            disambiguate_overlap(
+            get_languages(
                 ".pro",
                 &vec!["Proguard", "Prolog", "INI", "QMake", "IDL"],
                 "HEADERS"
             ),
-            None
+            empty_vec
         );
+    }
 
-        // Matches And with negative pattern
+    #[test]
+    fn test_heuristics_get_languages_and_negative_pattern() {
         assert_eq!(
-            disambiguate_overlap(
+            get_languages(
                 ".ms",
                 &vec!["Roff", "Unix Assembly", "MAXScript"],
                 ".include:"
             ),
-            Some("Unix Assembly")
+            vec!["Unix Assembly"]
         );
+    }
 
-        // Matches Or if one is true
+    #[test]
+    fn test_heuristics_get_languages_or_pattern() {
         assert_eq!(
-            disambiguate_overlap(".p", &vec!["Gnuplot", "OpenEdge ABL"], "plot"),
-            Some("Gnuplot")
+            get_languages(".p", &vec!["Gnuplot", "OpenEdge ABL"], "plot"),
+            vec!["Gnuplot"]
         );
+    }
 
-        // Matches named pattern
+    #[test]
+    fn test_heuristics_get_languages_named_pattern() {
         assert_eq!(
-            disambiguate_overlap(".h", &vec!["Objective-C", "C++"], "std::out"),
-            Some("C++")
+            get_languages(".h", &vec!["Objective-C", "C++"], "std::out"),
+            vec!["C++"]
         );
+    }
 
-        // Matches default language pattern (no pattern specified)
+    #[test]
+    fn test_heuristics_get_languages_default_pattern() {
         assert_eq!(
-            disambiguate_overlap(".man", &vec!["Roff Manpage", "Roff"], "alskdjfahij"),
-            Some("Roff")
+            get_languages(".man", &vec!["Roff Manpage", "Roff"], "alskdjfahij"),
+            vec!["Roff"]
         );
+    }
 
-        // Matches anchors for each line
+    #[test]
+    fn test_heuristics_get_languages_multiple_anchors() {
         assert_eq!(
-            disambiguate_overlap(
+            get_languages(
                 ".1in",
                 &vec!["Roff Manpage", "Roff"],
                 r#".TH LYXCLIENT 1 "@LYX_DATE@" "Version @VERSION@" "lyxclient @VERSION@"
 .SH NAME"#
             ),
-            Some("Roff Manpage")
+            vec!["Roff Manpage"]
         );
     }
 }

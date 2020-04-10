@@ -52,9 +52,9 @@ impl RuleDTO {
         // If we have more than one language, take the first
         // The only case this happens is the [Linux Kernel Module, AMPL] for .mod extension
         // And I'm not sure what the right behavior is in that case
-        let language = match &self.language {
-            MaybeMany::Many(values) => &values[0],
-            MaybeMany::One(value) => value,
+        let languages = match &self.language {
+            MaybeMany::Many(values) => values.clone(),
+            MaybeMany::One(value) => vec![value.clone()],
         };
 
         let pattern_code = match &self.pattern {
@@ -63,8 +63,9 @@ impl RuleDTO {
         };
 
         format!(
-            "Rule {{ language: \"{}\", pattern: {}}}",
-            language, pattern_code
+            "Rule {{ languages: &[\"{}\"], pattern: {}}}",
+            languages.join("\",\""),
+            pattern_code
         )
     }
 }

@@ -48,12 +48,21 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     let mut content = String::new();
     reader.read_to_string(&mut content)?;
 
-    if candidates.len() > 1 {
-        let language = extension
-            .and_then(|ext| heuristics::disambiguate_overlap(&ext[..], &candidates, &content));
-        if let Some(language) = language {
-            return Ok(language);
-        };
+    // using heuristics is only going to be useful if we have more than one candidate
+    // if the extension didn't result in candidate languages then the heuristics won't either
+    let candidates = if candidates.len() > 1 {
+        if let Some(extension) = extension {
+            let languages = heuristics::get_languages(&extension[..], &candidates, &content);
+            filter_candidates(candidates, languages)
+        } else {
+            candidates
+        }
+    } else {
+        candidates
+    };
+
+    if candidates.len() == 1 {
+        return Ok(candidates[0]);
     }
 
     classifier::classify(&content, &candidates)
@@ -105,12 +114,10 @@ fn filter_candidates(
 
 #[cfg(test)]
 mod tests {
-    extern crate test;
     use super::*;
     use std::fs;
     use std::io::prelude::*;
     use std::iter;
-    use test::Bencher;
 
     #[test]
     fn test_detect_filename() {
@@ -178,7 +185,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // too expensive to run every time
     fn test_detect_accuracy() {
         let mut total = 0;
         let mut correct = 0;
@@ -210,7 +216,7 @@ mod tests {
             });
 
         let accuracy = (correct as f64) / (total as f64);
-        assert!(accuracy > 0.97);
+        assert!(accuracy > 0.99);
     }
 
     #[test]
@@ -251,26 +257,5 @@ mod tests {
             filter_candidates(previous_candidates, new_candidates),
             vec!["Python"]
         );
-    }
-
-    #[bench]
-    #[ignore]
-    fn bench_against_samples(b: &mut Bencher) {
-        b.iter(|| {
-            fs::read_dir("samples")
-                .unwrap()
-                .map(|entry| entry.unwrap())
-                .filter(|entry| entry.path().is_dir())
-                .map(|language_dir| {
-                    fs::read_dir(language_dir.path())
-                        .unwrap()
-                        .map(|entry| entry.unwrap().path())
-                        .filter(|path| path.is_file())
-                })
-                .flatten()
-                .for_each(|file| {
-                    let _ = detect(&file).unwrap_or("");
-                });
-        });
     }
 }
