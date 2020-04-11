@@ -130,6 +130,14 @@ mod tests {
         assert_eq!(language, "Rust");
     }
 
+    #[test]
+    fn test_classify_f_star() {
+        let content = fs::read_to_string("samples/Fstar/Hacl.HKDF.fst").unwrap();
+        let candidates = vec![];
+        let language = classify(content.as_str(), &candidates).unwrap();
+        assert_eq!(language, "F*");
+    }
+
     #[bench]
     fn bench_token_probability(b: &mut Bencher) {
         let token_map_rust = TOKEN_COUNTS.get("Rust").unwrap();

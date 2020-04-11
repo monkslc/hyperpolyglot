@@ -207,6 +207,11 @@ mod tests {
             })
             .flatten()
             .for_each(|(file, language)| {
+                // F* uses the name Fstar in the file system
+                let language = match &language[..] {
+                    "Fstar" => "F*",
+                    l => l,
+                };
                 if let Ok(detected_language) = detect(&file) {
                     total += 1;
                     if detected_language == language {

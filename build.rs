@@ -314,6 +314,10 @@ fn train_classifier() {
             let path = language_dir.path();
             let language = path.file_name().unwrap();
             let language = language.to_string_lossy().into_owned();
+            let language = match &language[..] {
+                "Fstar" => String::from("F*"),
+                _ => language,
+            };
 
             let file_paths = fs::read_dir(language_dir.path())
                 .unwrap()
