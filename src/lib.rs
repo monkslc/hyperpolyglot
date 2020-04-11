@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     error::Error,
     fs::File,
-    io::{BufRead, BufReader, Read, Seek, SeekFrom},
+    io::{BufReader, Read, Seek, SeekFrom},
     path::Path,
 };
 
@@ -36,10 +36,10 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
-    let mut line = String::new();
-    reader.read_line(&mut line)?;
-
-    let candidates = filter_candidates(candidates, interpreter::get_language_by_shebang(&line[..]));
+    let candidates = filter_candidates(
+        candidates,
+        interpreter::get_language_by_shebang(&mut reader)?,
+    );
     if candidates.len() == 1 {
         return Ok(candidates[0]);
     };
@@ -221,7 +221,7 @@ mod tests {
             });
 
         let accuracy = (correct as f64) / (total as f64);
-        assert!(accuracy > 0.99);
+        assert_eq!(accuracy, 1.0);
     }
 
     #[test]

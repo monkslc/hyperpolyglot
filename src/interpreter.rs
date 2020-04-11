@@ -5,9 +5,18 @@ use regex::Regex;
 // static INTERPRETERS: phf::Map<&'static str, &[&str]> = ...;
 include!("codegen/interpreter-language-map.rs");
 
-pub fn get_language_by_shebang(shebang_line: &str) -> Vec<&'static str> {
+pub fn get_language_by_shebang<R: std::io::BufRead>(
+    reader: R,
+) -> Result<Vec<&'static str>, std::io::Error> {
+    let mut lines = reader.lines();
+    let shebang_line = match lines.next() {
+        Some(line) => line,
+        None => return Ok(vec![]),
+    }?;
+    let mut extra_content = String::new();
+
     if !shebang_line.starts_with("#!") {
-        return vec![];
+        return Ok(vec![]);
     }
 
     let languages = shebang_line
@@ -18,6 +27,21 @@ pub fn get_language_by_shebang(shebang_line: &str) -> Vec<&'static str> {
             match splits.next() {
                 // #!/usr/bin/env python
                 Some("env") => splits.next(),
+                // #!/usr/bin/sh [exec scala "$0" "$@"]
+                Some("sh") => {
+                    let lines: Vec<String> = lines.take(4).filter_map(|line| line.ok()).collect();
+                    extra_content = lines.join("\n");
+                    lazy_static! {
+                        static ref SHEBANG_HACK_RE: Regex =
+                            Regex::new(r#"exec (\w+).+\$0.+\$@"#).unwrap();
+                    }
+                    let interpreter = SHEBANG_HACK_RE
+                        .captures(&extra_content[..])
+                        .and_then(|captures| captures.get(1))
+                        .map(|interpreter| interpreter.as_str())
+                        .unwrap_or("sh");
+                    Some(interpreter)
+                }
                 // #!/usr/bin/python
                 Some(interpreter) => Some(interpreter),
                 // #!
@@ -35,45 +59,96 @@ pub fn get_language_by_shebang(shebang_line: &str) -> Vec<&'static str> {
         });
 
     match languages {
-        Some(languages) => languages.to_vec(),
-        None => vec![],
+        Some(languages) => Ok(languages.to_vec()),
+        None => Ok(vec![]),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     #[test]
-    fn test_get_language_by_shebang() {
-        assert_eq!(get_language_by_shebang("#!/usr/bin/python"), vec!["Python"]);
+    fn test_get_language_by_shebang() {}
 
+    #[test]
+    fn test_shebang_get_language() {
         assert_eq!(
-            get_language_by_shebang("#!/usr/bin/env node"),
+            get_language_by_shebang(Cursor::new("#!/usr/bin/python")).unwrap(),
+            vec!["Python"]
+        );
+    }
+    #[test]
+    fn test_shebang_get_language_env() {
+        assert_eq!(
+            get_language_by_shebang(Cursor::new("#!/usr/bin/env node")).unwrap(),
             vec!["JavaScript"]
         );
+    }
 
-        let mut parrot_langs = get_language_by_shebang("#!/usr/bin/parrot");
+    #[test]
+    fn test_shebang_get_language_multiple() {
+        let mut parrot_langs = get_language_by_shebang(Cursor::new("#!/usr/bin/parrot")).unwrap();
         parrot_langs.sort();
         assert_eq!(
             parrot_langs,
             vec!["Parrot Assembly", "Parrot Internal Representation"]
         );
+    }
 
+    #[test]
+    fn test_shebang_get_language_with_minor_version() {
         assert_eq!(
-            get_language_by_shebang("#!/usr/bin/python2.6"),
+            get_language_by_shebang(Cursor::new("#!/usr/bin/python2.6")).unwrap(),
             vec!["Python"]
         );
+    }
 
+    #[test]
+    fn test_shebang_empty_cases() {
         let empty_vec: Vec<&'static str> = Vec::new();
-        assert_eq!(get_language_by_shebang("#!/usr/bin/env"), empty_vec);
-        assert_eq!(get_language_by_shebang("#!"), empty_vec);
-        assert_eq!(get_language_by_shebang(""), empty_vec);
-        assert_eq!(get_language_by_shebang("aslkdfjas;ldk"), empty_vec);
-        assert_eq!(get_language_by_shebang(" #!/usr/bin/python"), empty_vec);
-        assert_eq!(get_language_by_shebang(" #!/usr/bin/ "), empty_vec);
-        assert_eq!(get_language_by_shebang(" #!/usr/bin"), empty_vec);
-        assert_eq!(get_language_by_shebang(" #!/usr/bin"), empty_vec);
-        assert_eq!(get_language_by_shebang(""), empty_vec);
+        assert_eq!(
+            get_language_by_shebang(Cursor::new("#!/usr/bin/env")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(
+            get_language_by_shebang(Cursor::new("#!")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(get_language_by_shebang(Cursor::new("")).unwrap(), empty_vec);
+        assert_eq!(
+            get_language_by_shebang(Cursor::new("aslkdfjas;ldk")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(
+            get_language_by_shebang(Cursor::new(" #!/usr/bin/python")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(
+            get_language_by_shebang(Cursor::new(" #!/usr/bin/ ")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(
+            get_language_by_shebang(Cursor::new(" #!/usr/bin")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(
+            get_language_by_shebang(Cursor::new(" #!/usr/bin")).unwrap(),
+            empty_vec
+        );
+        assert_eq!(get_language_by_shebang(Cursor::new("")).unwrap(), empty_vec);
+    }
+
+    #[test]
+    fn test_shebang_hack() {
+        let content = Cursor::new(
+            r#"#!/bin/sh
+               exec scala "$0" "$@"
+               !#
+            "#,
+        );
+
+        assert_eq!(get_language_by_shebang(content).unwrap(), vec!["Scala"]);
     }
 }
