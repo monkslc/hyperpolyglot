@@ -10,6 +10,7 @@ fn print_breakdown(languages: HashMap<&'static str, i32>) {
     let total = language_counts.iter().fold(0, |acc, (_, x)| acc + **x) as f64;
     language_counts.sort_by(|(_, a), (_, b)| b.cmp(a));
     for (language, count) in language_counts.iter() {
-        println!("{} {}", language, (**count as f64) / total);
+        let percentage = ((**count * 100) as f64) / total;
+        println!("{:.2}% {}", percentage, language);
     }
 }
