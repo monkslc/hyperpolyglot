@@ -1,6 +1,6 @@
 #![feature(test)]
 
-use ignore::Walk;
+use ignore::WalkBuilder;
 use std::{
     collections::HashMap,
     error::Error,
@@ -14,6 +14,7 @@ mod extension;
 mod filenames;
 mod heuristics;
 mod interpreter;
+mod vendor;
 
 pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
@@ -68,9 +69,11 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     classifier::classify(&content, &candidates)
 }
 
-pub fn get_language_breakdown() -> HashMap<&'static str, i32> {
+pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, i32> {
     let mut counts = HashMap::new();
-    Walk::new("./")
+    WalkBuilder::new(&path)
+        .overrides(vendor::get_vendor_override(&path))
+        .build()
         .into_iter()
         .filter_map(|entry| entry.ok())
         .filter(|entry| {

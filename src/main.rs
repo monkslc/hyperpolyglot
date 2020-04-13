@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 fn main() {
-    let breakdown = hyperpolyglot::get_language_breakdown();
+    let breakdown = hyperpolyglot::get_language_breakdown("./");
     print_breakdown(breakdown);
 }
 
