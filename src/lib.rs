@@ -17,6 +17,22 @@ mod heuristics;
 mod interpreter;
 mod vendor;
 
+// Include the map that stores language info
+// static LANGUAGE_INFO: phf::Map<&'static str, Language> = ...;
+include!("codegen/language-info-map.rs");
+
+pub struct Language<'a> {
+    pub name: &'a str,
+    pub type_of: LanguageType,
+}
+
+pub enum LanguageType {
+    Data,
+    Markup,
+    Programming,
+    Prose,
+}
+
 pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
@@ -117,6 +133,10 @@ fn filter_candidates(
         0 => previous_candidates,
         _ => filtered_candidates,
     }
+}
+
+pub fn get_language_info(name: &str) -> Option<&Language> {
+    LANGUAGE_INFO.get(name)
 }
 
 #[cfg(test)]

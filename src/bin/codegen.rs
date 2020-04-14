@@ -8,14 +8,44 @@ use std::{
     iter,
 };
 
-type LanguageMap = HashMap<String, Language>;
+type LanguageMap = HashMap<String, LanguageDTO>;
 type NamedPatterns = HashMap<String, MaybeMany<String>>;
 
 #[derive(Deserialize)]
-struct Language {
+struct LanguageDTO {
     filenames: Option<Vec<String>>,
     interpreters: Option<Vec<String>>,
     extensions: Option<Vec<String>>,
+    #[serde(rename(deserialize = "type"))]
+    type_of: LanguageType,
+}
+
+impl LanguageDTO {
+    fn to_domain_object_code(&self, name: &str) -> String {
+        format!(
+            "Language {{ name: \"{}\", type_of: {} }}",
+            name,
+            self.type_of.to_domain_object_code()
+        )
+    }
+}
+
+#[derive(Deserialize, Debug)]
+enum LanguageType {
+    #[serde(rename = "data")]
+    Data,
+    #[serde(rename = "markup")]
+    Markup,
+    #[serde(rename = "programming")]
+    Programming,
+    #[serde(rename = "prose")]
+    Prose,
+}
+
+impl LanguageType {
+    fn to_domain_object_code(&self) -> String {
+        format!("LanguageType::{:?}", self)
+    }
 }
 
 #[derive(Deserialize)]
@@ -49,9 +79,6 @@ struct RuleDTO {
 
 impl RuleDTO {
     fn to_domain_object_code(&self, named_patterns: &NamedPatterns) -> String {
-        // If we have more than one language, take the first
-        // The only case this happens is the [Linux Kernel Module, AMPL] for .mod extension
-        // And I'm not sure what the right behavior is in that case
         let languages = match &self.language {
             MaybeMany::Many(values) => values.clone(),
             MaybeMany::One(value) => vec![value.clone()],
@@ -146,6 +173,7 @@ const EXTENSION_MAP_FILE: &str = "src/codegen/extension-language-map.rs";
 const FILENAME_MAP_FILE: &str = "src/codegen/filename-language-map.rs";
 const INTERPRETER_MAP_FILE: &str = "src/codegen/interpreter-language-map.rs";
 const LANGUAGE_LIST_FILE: &str = "src/codegen/languages.rs";
+const LANGUAGE_INFO_FILE: &str = "src/codegen/language-info-map.rs";
 const TOKEN_COUNT_FILE: &str = "src/codegen/token-count.rs";
 const TOTAL_TOKEN_COUNT_FILE: &str = "src/codegen/total-token-count.rs";
 
@@ -158,7 +186,8 @@ fn main() {
     let languages: LanguageMap =
         serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..]).unwrap();
 
-    write_languages(&languages);
+    write_language_list(&languages);
+    write_language_info(&languages);
     create_filename_map(&languages);
     create_interpreter_map(&languages);
     create_extension_map(&languages);
@@ -170,7 +199,7 @@ fn main() {
     train_classifier();
 }
 
-fn write_languages(languages: &LanguageMap) {
+fn write_language_list(languages: &LanguageMap) {
     let mut file = BufWriter::new(File::create(LANGUAGE_LIST_FILE).unwrap());
 
     let languages: Vec<String> = languages.keys().map(|language| language.clone()).collect();
@@ -179,6 +208,25 @@ fn write_languages(languages: &LanguageMap) {
         &mut file,
         "static LANGUAGES: &[&'static str] = &[\"{}\"];",
         languages.join("\",\"")
+    )
+    .unwrap();
+}
+
+fn write_language_info(languages: &LanguageMap) {
+    let mut file = BufWriter::new(File::create(LANGUAGE_INFO_FILE).unwrap());
+
+    let mut language_info_map = PhfMap::new();
+    for (language_name, language) in languages.iter() {
+        language_info_map.entry(
+            &language_name[..],
+            &language.to_domain_object_code(&language_name[..])[..],
+        );
+    }
+
+    writeln!(
+        &mut file,
+        "static LANGUAGE_INFO: phf::Map<&'static str, Language> =\n{};\n",
+        language_info_map.build()
     )
     .unwrap();
 }

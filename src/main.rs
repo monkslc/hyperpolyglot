@@ -1,12 +1,23 @@
 use std::collections::HashMap;
 
+use hyperpolyglot::{get_language_info, LanguageType};
+
 fn main() {
     let breakdown = hyperpolyglot::get_language_breakdown("./");
     print_breakdown(breakdown);
 }
 
 fn print_breakdown(languages: HashMap<&'static str, i32>) {
-    let mut language_counts: Vec<(&&'static str, &i32)> = languages.iter().collect();
+    let mut language_counts: Vec<(&&'static str, &i32)> = languages
+        .iter()
+        .filter(
+            |(language_name, _)| match get_language_info(language_name).map(|l| &l.type_of) {
+                Some(LanguageType::Markup) | Some(LanguageType::Programming) => true,
+                _ => false,
+            },
+        )
+        .collect();
+
     let total = language_counts.iter().fold(0, |acc, (_, x)| acc + **x) as f64;
     language_counts.sort_by(|(_, a), (_, b)| b.cmp(a));
     for (language, count) in language_counts.iter() {
