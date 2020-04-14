@@ -100,7 +100,12 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
     }
 }
 
-pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, i32> {
+pub struct Breakdown {
+    pub count: i32,
+    pub files: Vec<std::path::PathBuf>,
+}
+
+pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, Breakdown> {
     let mut counts = HashMap::new();
     let override_builder = OverrideBuilder::new(&path);
     let override_builder = documentation::add_override(override_builder);
@@ -118,8 +123,12 @@ pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, 
         })
         .for_each(|entry| {
             if let Ok(language) = detect(entry.path()) {
-                let count = counts.entry(language).or_insert(0);
-                *count += 1;
+                let breakdown = counts.entry(language).or_insert(Breakdown {
+                    count: 0,
+                    files: vec![],
+                });
+                breakdown.count += 1;
+                breakdown.files.push(entry.into_path());
             }
         });
     counts

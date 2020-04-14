@@ -1,14 +1,12 @@
-use std::collections::HashMap;
+use clap::{App, Arg};
 
-use hyperpolyglot::{get_language_info, LanguageType};
+use hyperpolyglot::{get_language_breakdown, get_language_info, Breakdown, LanguageType};
 
 fn main() {
-    let breakdown = hyperpolyglot::get_language_breakdown("./");
-    print_breakdown(breakdown);
-}
+    let matches = get_cli().get_matches();
+    let breakdown = get_language_breakdown("./");
 
-fn print_breakdown(languages: HashMap<&'static str, i32>) {
-    let mut language_counts: Vec<(&&'static str, &i32)> = languages
+    let mut language_count: Vec<(&&'static str, &Breakdown)> = breakdown
         .iter()
         .filter(
             |(language_name, _)| match get_language_info(language_name).map(|l| &l.type_of) {
@@ -17,11 +15,42 @@ fn print_breakdown(languages: HashMap<&'static str, i32>) {
             },
         )
         .collect();
+    language_count.sort_by(|(_, a), (_, b)| b.count.cmp(&a.count));
+    print_language_split(&language_count);
 
-    let total = language_counts.iter().fold(0, |acc, (_, x)| acc + **x) as f64;
-    language_counts.sort_by(|(_, a), (_, b)| b.cmp(a));
-    for (language, count) in language_counts.iter() {
-        let percentage = ((**count * 100) as f64) / total;
+    if matches.is_present("file-breakdown") {
+        print_file_breakdown(&language_count);
+    }
+}
+
+fn get_cli<'a, 'b>() -> App<'a, 'b> {
+    App::new("Hyperpolyglot")
+        .version("0.1.0")
+        .about("Get the programming language breakdown for a file.")
+        .arg(
+            Arg::with_name("file-breakdown")
+                .short("b")
+                .long("breakdown")
+                .help("prints the language detected for each file it visits"),
+        )
+}
+
+fn print_language_split(language_counts: &Vec<(&&'static str, &Breakdown)>) {
+    let total = language_counts
+        .iter()
+        .fold(0, |acc, (_, breakdown)| acc + breakdown.count) as f64;
+    for (language, breakdown) in language_counts.iter() {
+        let percentage = ((breakdown.count * 100) as f64) / total;
         println!("{:.2}% {}", percentage, language);
+    }
+}
+
+fn print_file_breakdown(language_counts: &Vec<(&&'static str, &Breakdown)>) {
+    for (language, breakdown) in language_counts.iter() {
+        println!("{}", language);
+        for file in breakdown.files.iter() {
+            println!("{}", file.to_str().unwrap_or("Error"));
+        }
+        println!("");
     }
 }
