@@ -20,6 +20,7 @@ fn main() {
     print_language_split(&language_count);
 
     if matches.is_present("file-breakdown") {
+        println!("");
         print_file_breakdown(&language_count);
     }
 }
