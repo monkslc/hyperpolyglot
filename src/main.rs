@@ -4,7 +4,8 @@ use hyperpolyglot::{get_language_breakdown, get_language_info, Breakdown, Langua
 
 fn main() {
     let matches = get_cli().get_matches();
-    let breakdown = get_language_breakdown("./");
+    let path = matches.value_of("PATH").unwrap();
+    let breakdown = get_language_breakdown(path);
 
     let mut language_count: Vec<(&&'static str, &Breakdown)> = breakdown
         .iter()
@@ -33,6 +34,7 @@ fn get_cli<'a, 'b>() -> App<'a, 'b> {
                 .long("breakdown")
                 .help("prints the language detected for each file it visits"),
         )
+        .arg(Arg::with_name("PATH").index(1).default_value("./"))
 }
 
 fn print_language_split(language_counts: &Vec<(&&'static str, &Breakdown)>) {
