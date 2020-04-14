@@ -1,6 +1,6 @@
 #![feature(test)]
 
-use ignore::WalkBuilder;
+use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
     collections::HashMap,
     error::Error,
@@ -10,6 +10,7 @@ use std::{
 };
 
 mod classifier;
+mod documentation;
 mod extension;
 mod filenames;
 mod heuristics;
@@ -71,8 +72,11 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
 
 pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, i32> {
     let mut counts = HashMap::new();
+    let override_builder = OverrideBuilder::new(&path);
+    let override_builder = documentation::add_override(override_builder);
+    let override_builder = vendor::add_override(override_builder);
     WalkBuilder::new(&path)
-        .overrides(vendor::get_vendor_override(&path))
+        .overrides(override_builder.build().unwrap())
         .build()
         .into_iter()
         .filter_map(|entry| entry.ok())
@@ -265,5 +269,23 @@ mod tests {
             filter_candidates(previous_candidates, new_candidates),
             vec!["Python"]
         );
+    }
+
+    #[test]
+    fn test_get_language_breakdown_ignores_overrides_documentation() {
+        fs::create_dir_all("temp-testing-dir").unwrap();
+        fs::File::create("temp-testing-dir/README.md").unwrap();
+        assert!(get_language_breakdown("temp-testing-dir").is_empty());
+
+        fs::remove_dir_all("temp-testing-dir").unwrap();
+    }
+
+    #[test]
+    fn test_get_language_breakdown_ignores_overrides_vendor() {
+        fs::create_dir_all("temp-testing-dir2/node_modules").unwrap();
+        fs::File::create("temp-testing-dir2/node_modules/hello.go").unwrap();
+        assert!(get_language_breakdown("temp-testing-dir2").is_empty());
+
+        fs::remove_dir_all("temp-testing-dir2").unwrap();
     }
 }
