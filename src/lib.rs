@@ -21,6 +21,8 @@ mod vendor;
 // static LANGUAGE_INFO: phf::Map<&'static str, Language> = ...;
 include!("codegen/language-info-map.rs");
 
+const MAX_CONTENT_SIZE_BYTES: usize = 51200;
+
 pub struct Language<'a> {
     pub name: &'a str,
     pub type_of: LanguageType,
@@ -65,6 +67,7 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
 
     let mut content = String::new();
     reader.read_to_string(&mut content)?;
+    let content = truncate_to_char_boundary(&content, MAX_CONTENT_SIZE_BYTES);
 
     // using heuristics is only going to be useful if we have more than one candidate
     // if the extension didn't result in candidate languages then the heuristics won't either
@@ -84,6 +87,17 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
     }
 
     classifier::classify(&content, &candidates)
+}
+
+fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
+    if max >= s.len() {
+        s
+    } else {
+        while !s.is_char_boundary(max) {
+            max -= 1;
+        }
+        &s[..max]
+    }
 }
 
 pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, i32> {

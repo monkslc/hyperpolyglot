@@ -29,8 +29,6 @@ pub fn classify(
         _ => candidates,
     };
 
-    let content = truncate_to_char_boundary(content, 51200);
-
     let tokens = tokens::tokenize(content)?;
     let mut scored_candidates: Vec<LanguageScore> = candidates
         .iter()
@@ -69,17 +67,6 @@ pub fn classify(
 fn token_probability(token_map: &phf::Map<&'static str, f64>, token: &str, total: f64) -> f64 {
     let count = token_map.get(token).unwrap_or(&1E-5f64);
     count / total
-}
-
-fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
-    if max >= s.len() {
-        s
-    } else {
-        while !s.is_char_boundary(max) {
-            max -= 1;
-        }
-        &s[..max]
-    }
 }
 
 #[cfg(test)]
