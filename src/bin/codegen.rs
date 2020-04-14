@@ -155,26 +155,19 @@ const LANGUAGE_SOURCE_FILE: &str = "languages.yml";
 const MAX_TOKEN_BYTES: usize = 32;
 
 fn main() {
-    match std::env::var("TRAIN") {
-        Ok(_) => {
-            let languages: LanguageMap =
-                serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..])
-                    .unwrap();
+    let languages: LanguageMap =
+        serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..]).unwrap();
 
-            write_languages(&languages);
-            create_filename_map(&languages);
-            create_interpreter_map(&languages);
-            create_extension_map(&languages);
+    write_languages(&languages);
+    create_filename_map(&languages);
+    create_interpreter_map(&languages);
+    create_extension_map(&languages);
 
-            let heuristics: Heuristics =
-                serde_yaml::from_str(&fs::read_to_string(HEURISTICS_SOURCE_FILE).unwrap()[..])
-                    .unwrap();
-            create_disambiguation_heuristics_map(&heuristics);
+    let heuristics: Heuristics =
+        serde_yaml::from_str(&fs::read_to_string(HEURISTICS_SOURCE_FILE).unwrap()[..]).unwrap();
+    create_disambiguation_heuristics_map(&heuristics);
 
-            train_classifier();
-        }
-        Err(e) => println!("couldn't interpret {}: {}", "TRAIN", e),
-    }
+    train_classifier();
 }
 
 fn write_languages(languages: &LanguageMap) {
