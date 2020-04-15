@@ -38,7 +38,7 @@ pub enum LanguageType {
 pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
-    let candidate = filename.and_then(|filename| filenames::get_language_by_filename(filename));
+    let candidate = filename.and_then(|filename| filenames::get_language_from_filename(filename));
     if let Some(candidate) = candidate {
         return Ok(Some(candidate));
     };
@@ -46,7 +46,7 @@ pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
     let extension = filename.and_then(|filename| extension::get(filename));
 
     let candidates = extension
-        .map(|ext| extension::get_language(ext))
+        .map(|ext| extension::get_languages_from_extension(ext))
         .unwrap_or(vec![]);
 
     if candidates.len() == 1 {
@@ -58,7 +58,7 @@ pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
 
     let candidates = filter_candidates(
         candidates,
-        interpreter::get_language_by_shebang(&mut reader)?,
+        interpreter::get_languages_from_shebang(&mut reader)?,
     );
     if candidates.len() == 1 {
         return Ok(Some(candidates[0]));
@@ -73,7 +73,8 @@ pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
     // if the extension didn't result in candidate languages then the heuristics won't either
     let candidates = if candidates.len() > 1 {
         if let Some(extension) = extension {
-            let languages = heuristics::get_languages(&extension[..], &candidates, &content);
+            let languages =
+                heuristics::get_languages_from_heuristics(&extension[..], &candidates, &content);
             filter_candidates(candidates, languages)
         } else {
             candidates

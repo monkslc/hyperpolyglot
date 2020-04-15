@@ -2,7 +2,7 @@
 // static EXTENSIONS: phf::Map<&'static str, &[&str]> = ...;
 include!("codegen/extension-language-map.rs");
 
-pub fn get_language(extension: &str) -> Vec<&'static str> {
+pub fn get_languages_from_extension(extension: &str) -> Vec<&'static str> {
     let languages = EXTENSIONS
         .get(extension)
         .map(|languages| languages.to_vec());
@@ -36,16 +36,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_language() {
-        assert_eq!(get_language(".djs"), vec!["Dogescript"]);
-        assert_eq!(get_language(".cmake.in"), vec!["CMake"]);
+    fn test_get_languages_from_extension() {
+        assert_eq!(get_languages_from_extension(".djs"), vec!["Dogescript"]);
+        assert_eq!(get_languages_from_extension(".cmake.in"), vec!["CMake"]);
 
-        let mut header_file_langs = get_language(".h");
+        let mut header_file_langs = get_languages_from_extension(".h");
         header_file_langs.sort();
         assert_eq!(header_file_langs, vec!["C", "C++", "Objective-C"]);
 
         let empty_vec: Vec<&'static str> = vec![];
-        assert_eq!(get_language(""), empty_vec);
+        assert_eq!(get_languages_from_extension(""), empty_vec);
     }
 
     #[test]
