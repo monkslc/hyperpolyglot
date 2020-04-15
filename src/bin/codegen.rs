@@ -17,15 +17,15 @@ struct LanguageDTO {
     interpreters: Option<Vec<String>>,
     extensions: Option<Vec<String>>,
     #[serde(rename(deserialize = "type"))]
-    type_of: LanguageType,
+    language_type: LanguageType,
 }
 
 impl LanguageDTO {
     fn to_domain_object_code(&self, name: &str) -> String {
         format!(
-            "Language {{ name: \"{}\", type_of: {} }}",
+            "Language {{ name: \"{}\", language_type: {} }}",
             name,
-            self.type_of.to_domain_object_code()
+            self.language_type.to_domain_object_code()
         )
     }
 }

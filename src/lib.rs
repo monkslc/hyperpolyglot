@@ -1,9 +1,13 @@
+//! # Hyperpolyglot
+//! `hyperpolyglot` is a crate for detecting the programming language of a file or the language
+//! breakdown for a directory.
 #![feature(test)]
 
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
     collections::HashMap,
     error::Error,
+    fmt,
     fs::File,
     io::{BufReader, Read, Seek, SeekFrom},
     path::Path,
@@ -23,11 +27,15 @@ include!("codegen/language-info-map.rs");
 
 const MAX_CONTENT_SIZE_BYTES: usize = 51200;
 
+/// The language object that conatins the name and the type of language
+#[derive(Debug)]
 pub struct Language<'a> {
     pub name: &'a str,
-    pub type_of: LanguageType,
+    pub language_type: LanguageType,
 }
 
+/// The set of possible language types
+#[derive(Debug)]
 pub enum LanguageType {
     Data,
     Markup,
@@ -35,6 +43,31 @@ pub enum LanguageType {
     Prose,
 }
 
+impl fmt::Display for LanguageType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LanguageType::Data => write!(f, "Data"),
+            LanguageType::Markup => write!(f, "Markup"),
+            LanguageType::Programming => write!(f, "Programming"),
+            LanguageType::Prose => write!(f, "Prose"),
+        }
+    }
+}
+
+/// Detects the programming language of the file at a given path
+///
+/// If the language cannot be determined, None will be returned.
+/// `detect` will error on an io error or if the parser returns an error when tokenizing the
+/// contents of the file
+///
+/// # Examples
+/// ```
+/// use std::path::Path;
+///
+/// let path = Path::new("src/main.rs");
+/// let language = hyperpolyglot::detect(path).unwrap().unwrap();
+/// assert_eq!("Rust", language);
+/// ```
 pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
@@ -101,11 +134,26 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
     }
 }
 
+/// Represents the breakdown of a language after analyzing a directory.
+///
+/// `count` is the total number of times that language was seen in the current project
+///
+/// `files` is the paths to the files that were detected to be of that language
+#[derive(Debug)]
 pub struct Breakdown {
     pub count: i32,
     pub files: Vec<std::path::PathBuf>,
 }
 
+/// Walks the path provided and tallies the programming languages detected in the given path
+///
+/// Returns a map from the programming languages detected to their `Breakdown`
+///
+/// # Examples
+/// ```
+/// let breakdown = hyperpolyglot::get_language_breakdown("src/");
+/// println!("{:?}", breakdown.get("Rust"));
+/// ```
 pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, Breakdown> {
     let mut counts = HashMap::new();
     let override_builder = OverrideBuilder::new(&path);
@@ -159,6 +207,16 @@ fn filter_candidates(
     }
 }
 
+/// Returns the info about a language given a language name
+///
+/// If the function is called with a language returned from `detect` or `get_language_breakdown`
+/// then the value can be unwrapped because it is guaranteed to be there
+///
+/// # Examples
+/// ```
+/// let info = hyperpolyglot::get_language_info("Rust").unwrap();
+/// assert_eq!(info.language_type.to_string(), "Programming")
+/// ```
 pub fn get_language_info(name: &str) -> Option<&Language> {
     LANGUAGE_INFO.get(name)
 }

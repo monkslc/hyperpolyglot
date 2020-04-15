@@ -9,12 +9,12 @@ fn main() {
 
     let mut language_count: Vec<(&&'static str, &Breakdown)> = breakdown
         .iter()
-        .filter(
-            |(language_name, _)| match get_language_info(language_name).map(|l| &l.type_of) {
+        .filter(|(language_name, _)| {
+            match get_language_info(language_name).map(|l| &l.language_type) {
                 Some(LanguageType::Markup) | Some(LanguageType::Programming) => true,
                 _ => false,
-            },
-        )
+            }
+        })
         .collect();
     language_count.sort_by(|(_, a), (_, b)| b.count.cmp(&a.count));
     print_language_split(&language_count);
