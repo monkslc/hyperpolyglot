@@ -6,6 +6,6 @@ pub Tokens: Vec<&'input str> = {
 
 
 Token: &'input str = {
-	<a: r"[[:alnum:]]+|[^[:alnum:]\s]"> => a,
+	<a: r"[[:alnum:]_]+|[^[:alnum:]\s]"> => a,
 };
 

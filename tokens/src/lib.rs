@@ -24,14 +24,15 @@ mod tests {
     fn test_tokenizer() {
         let sample = r#"
         fn main() {
-            println!("Hello, world");
+            let x_x = 5;
+            println!("{}", x);
         }
         "#;
 
         let tokens = tokenize(sample).unwrap();
         let expected = vec![
-            "fn", "main", "(", ")", "{", "println", "!", "(", "\"", "Hello", ",", "world", "\"",
-            ")", ";", "}",
+            "fn", "main", "(", ")", "{", "let", "x_x", "=", "5", ";", "println", "!", "(", "\"",
+            "{", "}", "\"", ",", "x", ")", ";", "}",
         ];
         for (i, token) in tokens.iter().enumerate() {
             assert_eq!(*token, expected[i]);
