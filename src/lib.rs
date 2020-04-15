@@ -35,12 +35,12 @@ pub enum LanguageType {
     Prose,
 }
 
-pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
+pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
     let candidate = filename.and_then(|filename| filenames::get_language_by_filename(filename));
     if let Some(candidate) = candidate {
-        return Ok(candidate);
+        return Ok(Some(candidate));
     };
 
     let extension = filename.and_then(|filename| extension::get(filename));
@@ -50,7 +50,7 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
         .unwrap_or(vec![]);
 
     if candidates.len() == 1 {
-        return Ok(candidates[0]);
+        return Ok(Some(candidates[0]));
     };
 
     let file = File::open(path)?;
@@ -61,7 +61,7 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
         interpreter::get_language_by_shebang(&mut reader)?,
     );
     if candidates.len() == 1 {
-        return Ok(candidates[0]);
+        return Ok(Some(candidates[0]));
     };
     reader.seek(SeekFrom::Start(0))?;
 
@@ -82,11 +82,11 @@ pub fn detect(path: &Path) -> Result<&'static str, Box<dyn Error>> {
         candidates
     };
 
-    if candidates.len() == 1 {
-        return Ok(candidates[0]);
+    match candidates.len() {
+        0 => Ok(None),
+        1 => Ok(Some(candidates[0])),
+        _ => Ok(Some(classifier::classify(&content, &candidates)?)),
     }
-
-    classifier::classify(&content, &candidates)
 }
 
 fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
@@ -122,7 +122,7 @@ pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, 
                 .unwrap_or(false)
         })
         .for_each(|entry| {
-            if let Ok(language) = detect(entry.path()) {
+            if let Ok(Some(language)) = detect(entry.path()) {
                 let breakdown = counts.entry(language).or_insert(Breakdown {
                     count: 0,
                     files: vec![],
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn test_detect_filename() {
         let path = Path::new("APKBUILD");
-        let detected_language = detect(path).unwrap();
+        let detected_language = detect(path).unwrap().unwrap();
 
         assert_eq!(detected_language, "Alpine Abuild");
     }
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_detect_extension() {
         let path = Path::new("pizza.purs");
-        let detected_language = detect(path).unwrap();
+        let detected_language = detect(path).unwrap().unwrap();
 
         assert_eq!(detected_language, "PureScript");
     }
@@ -192,7 +192,7 @@ mod tests {
         file.write(b"#!/usr/bin/python").unwrap();
         file.flush().unwrap();
 
-        let detected_language = detect(path).unwrap();
+        let detected_language = detect(path).unwrap().unwrap();
 
         fs::remove_file(path).unwrap();
 
@@ -206,7 +206,7 @@ mod tests {
         file.write(b"'use strict'").unwrap();
         file.flush().unwrap();
 
-        let detected_language = detect(path).unwrap();
+        let detected_language = detect(path).unwrap().unwrap();
 
         fs::remove_file(path).unwrap();
 
@@ -215,6 +215,27 @@ mod tests {
 
     #[test]
     fn test_detect_classify() {
+        let path = Path::new("peep.rs");
+        let mut file = File::create(path).unwrap();
+        file.write(
+            b"
+            match optional {
+                Some(pattern) => println!(\"Hello World\"),
+                None => println!(\"u missed\")
+            }
+            ",
+        )
+        .unwrap();
+        file.flush().unwrap();
+
+        let detected_language = detect(path).unwrap().unwrap();
+
+        fs::remove_file(path).unwrap();
+        assert_eq!(detected_language, "Rust");
+    }
+
+    #[test]
+    fn test_detect_none() {
         let path = Path::new("y");
         let mut file = File::create(path).unwrap();
         file.write(
@@ -231,7 +252,7 @@ mod tests {
 
         fs::remove_file(path).unwrap();
 
-        assert_eq!(detected_language, "Rust");
+        assert_eq!(detected_language, None);
     }
 
     #[test]
@@ -262,7 +283,7 @@ mod tests {
                     "Fstar" => "F*",
                     l => l,
                 };
-                if let Ok(detected_language) = detect(&file) {
+                if let Ok(Some(detected_language)) = detect(&file) {
                     total += 1;
                     if detected_language == language {
                         correct += 1;
