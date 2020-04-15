@@ -10,7 +10,7 @@ use std::{
     fmt,
     fs::File,
     io::{BufReader, Read, Seek, SeekFrom},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 mod classifier;
@@ -134,17 +134,6 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
     }
 }
 
-/// Represents the breakdown of a language after analyzing a directory.
-///
-/// `count` is the total number of times that language was seen in the current project
-///
-/// `files` is the paths to the files that were detected to be of that language
-#[derive(Debug)]
-pub struct Breakdown {
-    pub count: i32,
-    pub files: Vec<std::path::PathBuf>,
-}
-
 /// Walks the path provided and tallies the programming languages detected in the given path
 ///
 /// Returns a map from the programming languages detected to their `Breakdown`
@@ -154,7 +143,7 @@ pub struct Breakdown {
 /// let breakdown = hyperpolyglot::get_language_breakdown("src/");
 /// println!("{:?}", breakdown.get("Rust"));
 /// ```
-pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, Breakdown> {
+pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, Vec<PathBuf>> {
     let mut counts = HashMap::new();
     let override_builder = OverrideBuilder::new(&path);
     let override_builder = documentation::add_override(override_builder);
@@ -172,12 +161,8 @@ pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, 
         })
         .for_each(|entry| {
             if let Ok(Some(language)) = detect(entry.path()) {
-                let breakdown = counts.entry(language).or_insert(Breakdown {
-                    count: 0,
-                    files: vec![],
-                });
-                breakdown.count += 1;
-                breakdown.files.push(entry.into_path());
+                let files = counts.entry(language).or_insert(vec![]);
+                files.push(entry.into_path());
             }
         });
     counts

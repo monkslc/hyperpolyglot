@@ -1,13 +1,14 @@
 use clap::{App, Arg};
+use std::path::PathBuf;
 
-use hyperpolyglot::{get_language_breakdown, get_language_info, Breakdown, LanguageType};
+use hyperpolyglot::{get_language_breakdown, get_language_info, LanguageType};
 
 fn main() {
     let matches = get_cli().get_matches();
     let path = matches.value_of("PATH").unwrap();
     let breakdown = get_language_breakdown(path);
 
-    let mut language_count: Vec<(&&'static str, &Breakdown)> = breakdown
+    let mut language_count: Vec<(&&'static str, &Vec<PathBuf>)> = breakdown
         .iter()
         .filter(|(language_name, _)| {
             match get_language_info(language_name).map(|l| &l.language_type) {
@@ -16,7 +17,7 @@ fn main() {
             }
         })
         .collect();
-    language_count.sort_by(|(_, a), (_, b)| b.count.cmp(&a.count));
+    language_count.sort_by(|(_, a), (_, b)| b.len().cmp(&a.len()));
     print_language_split(&language_count);
 
     if matches.is_present("file-breakdown") {
@@ -38,20 +39,20 @@ fn get_cli<'a, 'b>() -> App<'a, 'b> {
         .arg(Arg::with_name("PATH").index(1).default_value("./"))
 }
 
-fn print_language_split(language_counts: &Vec<(&&'static str, &Breakdown)>) {
+fn print_language_split(language_counts: &Vec<(&&'static str, &Vec<PathBuf>)>) {
     let total = language_counts
         .iter()
-        .fold(0, |acc, (_, breakdown)| acc + breakdown.count) as f64;
-    for (language, breakdown) in language_counts.iter() {
-        let percentage = ((breakdown.count * 100) as f64) / total;
+        .fold(0, |acc, (_, files)| acc + files.len()) as f64;
+    for (language, files) in language_counts.iter() {
+        let percentage = ((files.len() * 100) as f64) / total;
         println!("{:.2}% {}", percentage, language);
     }
 }
 
-fn print_file_breakdown(language_counts: &Vec<(&&'static str, &Breakdown)>) {
-    for (language, breakdown) in language_counts.iter() {
+fn print_file_breakdown(language_counts: &Vec<(&&'static str, &Vec<PathBuf>)>) {
+    for (language, files) in language_counts.iter() {
         println!("{}", language);
-        for file in breakdown.files.iter() {
+        for file in files.iter() {
             println!("{}", file.to_str().unwrap_or("Error"));
         }
         println!("");
