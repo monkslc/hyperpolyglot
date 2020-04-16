@@ -11,6 +11,7 @@ use std::{
     fs::File,
     io::{BufReader, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
+    sync::mpsc,
 };
 
 mod classifier;
@@ -136,7 +137,8 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
 
 /// Walks the path provided and tallies the programming languages detected in the given path
 ///
-/// Returns a map from the programming languages detected to their `Breakdown`
+/// Returns a map from the programming languages to a Vec of the files that were detected to be of
+/// that language
 ///
 /// # Examples
 /// ```
@@ -144,28 +146,35 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
 /// println!("{:?}", breakdown.get("Rust"));
 /// ```
 pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, Vec<PathBuf>> {
-    let mut counts = HashMap::new();
     let override_builder = OverrideBuilder::new(&path);
     let override_builder = documentation::add_override(override_builder);
     let override_builder = vendor::add_override(override_builder);
-    WalkBuilder::new(&path)
+
+    let (tx, rx) = mpsc::channel::<(&'static str, PathBuf)>();
+    let walker = WalkBuilder::new(path)
         .overrides(override_builder.build().unwrap())
-        .build()
-        .into_iter()
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| {
-            entry
-                .file_type()
-                .map(|file| file.is_file())
-                .unwrap_or(false)
-        })
-        .for_each(|entry| {
-            if let Ok(Some(language)) = detect(entry.path()) {
-                let files = counts.entry(language).or_insert(vec![]);
-                files.push(entry.into_path());
+        .build_parallel();
+    walker.run(|| {
+        let tx = tx.clone();
+        Box::new(move |result| {
+            use ignore::WalkState::*;
+
+            let path = result.unwrap().into_path();
+            if let Ok(Some(language)) = detect(&path) {
+                tx.send((language, path)).unwrap();
             }
-        });
-    counts
+            Continue
+        })
+    });
+    drop(tx);
+
+    let mut language_breakdown = HashMap::new();
+    for (language, file) in rx {
+        let files = language_breakdown.entry(language).or_insert(vec![]);
+        files.push(file);
+    }
+
+    language_breakdown
 }
 
 fn filter_candidates(
