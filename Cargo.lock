@@ -345,6 +345,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_yaml",
+ "termcolor",
  "tokens",
 ]
 
@@ -937,6 +938,15 @@ dependencies = [
  "byteorder",
  "dirs",
  "winapi",
+]
+
+[[package]]
+name = "termcolor"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb6bfa289a4d7c5766392812c0a1f4c1ba45afa1ad47803c11e1f407d846d75f"
+dependencies = [
+ "winapi-util",
 ]
 
 [[package]]

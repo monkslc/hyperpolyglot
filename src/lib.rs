@@ -55,6 +55,41 @@ impl fmt::Display for LanguageType {
     }
 }
 
+/// An enum where the variant is the streategy that detected the language and the value is the name
+/// of the language
+#[derive(Debug, PartialEq)]
+pub enum Detection {
+    Filename(&'static str),
+    Extension(&'static str),
+    Shebang(&'static str),
+    Heuristics(&'static str),
+    Classifier(&'static str),
+}
+
+impl Detection {
+    /// Returns the language detected
+    pub fn language(&self) -> &'static str {
+        match self {
+            Detection::Filename(language)
+            | Detection::Extension(language)
+            | Detection::Shebang(language)
+            | Detection::Heuristics(language)
+            | Detection::Classifier(language) => language,
+        }
+    }
+
+    /// Returns the strategy used to detect the langauge
+    pub fn variant(&self) -> String {
+        match self {
+            Detection::Filename(_) => String::from("Filename"),
+            Detection::Extension(_) => String::from("Extension"),
+            Detection::Shebang(_) => String::from("Shebang"),
+            Detection::Heuristics(_) => String::from("Heuristics"),
+            Detection::Classifier(_) => String::from("Classifier"),
+        }
+    }
+}
+
 /// Detects the programming language of the file at a given path
 ///
 /// If the language cannot be determined, None will be returned.
@@ -64,17 +99,18 @@ impl fmt::Display for LanguageType {
 /// # Examples
 /// ```
 /// use std::path::Path;
+/// use hyperpolyglot::{detect, Detection};
 ///
 /// let path = Path::new("src/main.rs");
-/// let language = hyperpolyglot::detect(path).unwrap().unwrap();
-/// assert_eq!("Rust", language);
+/// let language = detect(path).unwrap().unwrap();
+/// assert_eq!(Detection::Heuristics("Rust"), language);
 /// ```
-pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
+pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
     let candidate = filename.and_then(|filename| filenames::get_language_from_filename(filename));
     if let Some(candidate) = candidate {
-        return Ok(Some(candidate));
+        return Ok(Some(Detection::Filename(candidate)));
     };
 
     let extension = filename.and_then(|filename| extension::get(filename));
@@ -84,7 +120,7 @@ pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
         .unwrap_or(vec![]);
 
     if candidates.len() == 1 {
-        return Ok(Some(candidates[0]));
+        return Ok(Some(Detection::Extension(candidates[0])));
     };
 
     let file = File::open(path)?;
@@ -95,7 +131,7 @@ pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
         interpreter::get_languages_from_shebang(&mut reader)?,
     );
     if candidates.len() == 1 {
-        return Ok(Some(candidates[0]));
+        return Ok(Some(Detection::Shebang(candidates[0])));
     };
     reader.seek(SeekFrom::Start(0))?;
 
@@ -119,8 +155,11 @@ pub fn detect(path: &Path) -> Result<Option<&'static str>, Box<dyn Error>> {
 
     match candidates.len() {
         0 => Ok(None),
-        1 => Ok(Some(candidates[0])),
-        _ => Ok(Some(classifier::classify(&content, &candidates)?)),
+        1 => Ok(Some(Detection::Heuristics(candidates[0]))),
+        _ => Ok(Some(Detection::Classifier(classifier::classify(
+            &content,
+            &candidates,
+        )?))),
     }
 }
 
@@ -137,20 +176,22 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
 
 /// Walks the path provided and tallies the programming languages detected in the given path
 ///
-/// Returns a map from the programming languages to a Vec of the files that were detected to be of
-/// that language
+/// Returns a map from the programming languages to a Vec of the files that were detected and the
+/// strategy used
 ///
 /// # Examples
 /// ```
 /// let breakdown = hyperpolyglot::get_language_breakdown("src/");
 /// println!("{:?}", breakdown.get("Rust"));
 /// ```
-pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, Vec<PathBuf>> {
+pub fn get_language_breakdown<P: AsRef<Path>>(
+    path: P,
+) -> HashMap<&'static str, Vec<(Detection, PathBuf)>> {
     let override_builder = OverrideBuilder::new(&path);
     let override_builder = documentation::add_override(override_builder);
     let override_builder = vendor::add_override(override_builder);
 
-    let (tx, rx) = mpsc::channel::<(&'static str, PathBuf)>();
+    let (tx, rx) = mpsc::channel::<(Detection, PathBuf)>();
     let walker = WalkBuilder::new(path)
         .overrides(override_builder.build().unwrap())
         .build_parallel();
@@ -160,8 +201,8 @@ pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, 
             use ignore::WalkState::*;
 
             let path = result.unwrap().into_path();
-            if let Ok(Some(language)) = detect(&path) {
-                tx.send((language, path)).unwrap();
+            if let Ok(Some(detection)) = detect(&path) {
+                tx.send((detection, path)).unwrap();
             }
             Continue
         })
@@ -169,9 +210,11 @@ pub fn get_language_breakdown<P: AsRef<Path>>(path: P) -> HashMap<&'static str, 
     drop(tx);
 
     let mut language_breakdown = HashMap::new();
-    for (language, file) in rx {
-        let files = language_breakdown.entry(language).or_insert(vec![]);
-        files.push(file);
+    for (detection, file) in rx {
+        let files = language_breakdown
+            .entry(detection.language())
+            .or_insert(vec![]);
+        files.push((detection, file));
     }
 
     language_breakdown
@@ -227,7 +270,7 @@ mod tests {
         let path = Path::new("APKBUILD");
         let detected_language = detect(path).unwrap().unwrap();
 
-        assert_eq!(detected_language, "Alpine Abuild");
+        assert_eq!(detected_language, Detection::Filename("Alpine Abuild"));
     }
 
     #[test]
@@ -235,7 +278,7 @@ mod tests {
         let path = Path::new("pizza.purs");
         let detected_language = detect(path).unwrap().unwrap();
 
-        assert_eq!(detected_language, "PureScript");
+        assert_eq!(detected_language, Detection::Extension("PureScript"));
     }
 
     #[test]
@@ -249,7 +292,7 @@ mod tests {
 
         fs::remove_file(path).unwrap();
 
-        assert_eq!(detected_language, "Python");
+        assert_eq!(detected_language, Detection::Shebang("Python"));
     }
 
     #[test]
@@ -263,7 +306,7 @@ mod tests {
 
         fs::remove_file(path).unwrap();
 
-        assert_eq!(detected_language, "JavaScript");
+        assert_eq!(detected_language, Detection::Heuristics("JavaScript"));
     }
 
     #[test]
@@ -284,7 +327,7 @@ mod tests {
         let detected_language = detect(path).unwrap().unwrap();
 
         fs::remove_file(path).unwrap();
-        assert_eq!(detected_language, "Rust");
+        assert_eq!(detected_language, Detection::Classifier("Rust"));
     }
 
     #[test]
@@ -336,9 +379,9 @@ mod tests {
                     "Fstar" => "F*",
                     l => l,
                 };
-                if let Ok(Some(detected_language)) = detect(&file) {
+                if let Ok(Some(detection)) = detect(&file) {
                     total += 1;
-                    if detected_language == language {
+                    if detection.language() == language {
                         correct += 1;
                     }
                 }

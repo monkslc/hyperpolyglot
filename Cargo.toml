@@ -10,6 +10,7 @@ ignore = "0.4.1"
 lalrpop = { version = "0.18.1", features = ["lexer"] }
 lalrpop-util = "0.18.1"
 lazy_static = "1.4.0"
+termcolor = "1.1.0"
 pcre2 = "0.2.3"
 phf = "0.8"
 phf_codegen = "0.8.0"
