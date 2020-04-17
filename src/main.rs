@@ -1,4 +1,5 @@
 use clap::{App, Arg};
+use lazy_static::lazy_static;
 use std::{collections::HashMap, io::Write, path::PathBuf};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -78,16 +79,17 @@ fn print_language_split(language_counts: &Vec<(&&'static str, &Vec<(Detection, P
 }
 
 fn print_file_breakdown(language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>) {
-    for (language, files) in language_counts.iter() {
-        println!("{} ({})", language, files.len());
-        for (detection, file) in files.iter() {
-            println!(
-                "{} ({})",
-                file.to_str().unwrap_or("Error"),
-                detection.variant()
-            );
+    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    for (language, breakdowns) in language_counts.iter() {
+        stdout.set_color(&TITLE_COLOR).unwrap();
+        write!(stdout, "{}", language).unwrap();
+
+        stdout.set_color(&DEFAULT_COLOR).unwrap();
+        writeln!(stdout, " ({})", breakdowns.len()).unwrap();
+        for (_, file) in breakdowns.iter() {
+            writeln!(stdout, "{}", file.to_str().unwrap_or("Error")).unwrap();
         }
-        println!("");
+        writeln!(stdout, "").unwrap();
     }
 }
 
@@ -110,29 +112,35 @@ fn print_strategy_breakdown(
     strategy_breakdowns.sort_by(|(_, a), (_, b)| b.len().cmp(&a.len()));
 
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
-    let default_color = ColorSpec::default();
-
-    let mut title_color = ColorSpec::new();
-    title_color.set_fg(Some(Color::Magenta));
-
-    let mut language_color = ColorSpec::new();
-    language_color.set_fg(Some(Color::Green));
-
     for (strategy, breakdowns) in strategy_breakdowns.iter() {
-        stdout.set_color(&title_color).unwrap();
+        stdout.set_color(&TITLE_COLOR).unwrap();
         write!(stdout, "{}", strategy).unwrap();
 
-        stdout.set_color(&default_color).unwrap();
+        stdout.set_color(&DEFAULT_COLOR).unwrap();
         writeln!(stdout, " ({})", breakdowns.len()).unwrap();
         if !options.condensed_output {
             for (file, language) in breakdowns.iter() {
-                stdout.set_color(&default_color).unwrap();
+                stdout.set_color(&DEFAULT_COLOR).unwrap();
                 write!(stdout, "{}", file.to_str().unwrap_or("Error")).unwrap();
 
-                stdout.set_color(&language_color).unwrap();
+                stdout.set_color(&LANGUAGE_COLOR).unwrap();
                 writeln!(stdout, " ({})", language).unwrap();
             }
             writeln!(stdout, "").unwrap();
         }
     }
+}
+
+lazy_static! {
+    static ref TITLE_COLOR: ColorSpec = {
+        let mut title_color = ColorSpec::new();
+        title_color.set_fg(Some(Color::Magenta));
+        title_color
+    };
+    static ref DEFAULT_COLOR: ColorSpec = ColorSpec::default();
+    static ref LANGUAGE_COLOR: ColorSpec = {
+        let mut language_color = ColorSpec::new();
+        language_color.set_fg(Some(Color::Green));
+        language_color
+    };
 }
