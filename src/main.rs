@@ -32,12 +32,12 @@ fn main() {
 
     if matches.is_present("file-breakdown") {
         println!("");
-        print_file_breakdown(&language_count);
+        print_file_breakdown(&language_count, &cli_options);
     }
 
     if matches.is_present("strategy-breakdown") {
         println!("");
-        print_strategy_breakdown(&language_count, cli_options);
+        print_strategy_breakdown(&language_count, &cli_options);
     }
 }
 
@@ -78,7 +78,10 @@ fn print_language_split(language_counts: &Vec<(&&'static str, &Vec<(Detection, P
     }
 }
 
-fn print_file_breakdown(language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>) {
+fn print_file_breakdown(
+    language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>,
+    options: &CLIOptions,
+) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     for (language, breakdowns) in language_counts.iter() {
         stdout.set_color(&TITLE_COLOR).unwrap();
@@ -86,16 +89,18 @@ fn print_file_breakdown(language_counts: &Vec<(&&'static str, &Vec<(Detection, P
 
         stdout.set_color(&DEFAULT_COLOR).unwrap();
         writeln!(stdout, " ({})", breakdowns.len()).unwrap();
-        for (_, file) in breakdowns.iter() {
-            writeln!(stdout, "{}", file.to_str().unwrap_or("Error")).unwrap();
+        if !options.condensed_output {
+            for (_, file) in breakdowns.iter() {
+                writeln!(stdout, "{}", file.to_str().unwrap_or("Error")).unwrap();
+            }
+            writeln!(stdout, "").unwrap();
         }
-        writeln!(stdout, "").unwrap();
     }
 }
 
 fn print_strategy_breakdown(
     language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>,
-    options: CLIOptions,
+    options: &CLIOptions,
 ) {
     let mut strategy_breakdown = HashMap::new();
     for (language, files) in language_counts.iter() {
