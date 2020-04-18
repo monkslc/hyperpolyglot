@@ -91,7 +91,8 @@ fn print_file_breakdown(
         writeln!(stdout, " ({})", breakdowns.len()).unwrap();
         if !options.condensed_output {
             for (_, file) in breakdowns.iter() {
-                writeln!(stdout, "{}", file.to_str().unwrap_or("Error")).unwrap();
+                let path = strip_relative_parts(file);
+                writeln!(stdout, "{}", path.display()).unwrap();
             }
             writeln!(stdout, "").unwrap();
         }
@@ -126,13 +127,22 @@ fn print_strategy_breakdown(
         if !options.condensed_output {
             for (file, language) in breakdowns.iter() {
                 stdout.set_color(&DEFAULT_COLOR).unwrap();
-                write!(stdout, "{}", file.to_str().unwrap_or("Error")).unwrap();
+                let path = strip_relative_parts(file);
+                write!(stdout, "{}", path.display()).unwrap();
 
                 stdout.set_color(&LANGUAGE_COLOR).unwrap();
                 writeln!(stdout, " ({})", language).unwrap();
             }
             writeln!(stdout, "").unwrap();
         }
+    }
+}
+
+fn strip_relative_parts<'a>(path: &'a PathBuf) -> &'a std::path::Path {
+    if path.starts_with("./") {
+        path.strip_prefix("./").unwrap()
+    } else {
+        path.as_path()
     }
 }
 
