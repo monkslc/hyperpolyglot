@@ -1,6 +1,11 @@
 use clap::{App, Arg};
 use lazy_static::lazy_static;
-use std::{collections::HashMap, io::Write, path::PathBuf};
+use std::{
+    cmp::Reverse,
+    collections::{BinaryHeap, HashMap},
+    io::Write,
+    path::PathBuf,
+};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use hyperpolyglot::{get_language_breakdown, get_language_info, Detection, LanguageType};
@@ -14,8 +19,8 @@ fn main() {
     let path = matches.value_of("PATH").unwrap();
     let breakdown = get_language_breakdown(path);
 
-    let mut language_count: Vec<(&&'static str, &Vec<(Detection, PathBuf)>)> = breakdown
-        .iter()
+    let mut language_count: Vec<(&'static str, Vec<(Detection, PathBuf)>)> = breakdown
+        .into_iter()
         .filter(|(language_name, _)| {
             match get_language_info(language_name).map(|l| &l.language_type) {
                 Some(LanguageType::Markup) | Some(LanguageType::Programming) => true,
@@ -68,7 +73,7 @@ fn get_cli<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-fn print_language_split(language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>) {
+fn print_language_split(language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>) {
     let total = language_counts
         .iter()
         .fold(0, |acc, (_, files)| acc + files.len()) as f64;
@@ -79,7 +84,7 @@ fn print_language_split(language_counts: &Vec<(&&'static str, &Vec<(Detection, P
 }
 
 fn print_file_breakdown(
-    language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>,
+    language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>,
     options: &CLIOptions,
 ) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
@@ -100,32 +105,32 @@ fn print_file_breakdown(
 }
 
 fn print_strategy_breakdown(
-    language_counts: &Vec<(&&'static str, &Vec<(Detection, PathBuf)>)>,
+    language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>,
     options: &CLIOptions,
 ) {
     let mut strategy_breakdown = HashMap::new();
-    for (language, files) in language_counts.iter() {
-        for (detection, file) in files.iter() {
+    for (language, files) in language_counts.into_iter() {
+        for (detection, file) in files.into_iter() {
             let files = strategy_breakdown
                 .entry(detection.variant())
-                .or_insert(vec![]);
-            files.push((file, language));
+                .or_insert(BinaryHeap::new());
+            files.push(Reverse((language, file)));
         }
     }
 
-    let mut strategy_breakdowns: Vec<(&String, &Vec<(&PathBuf, &&&str)>)> =
-        strategy_breakdown.iter().collect();
+    let mut strategy_breakdowns: Vec<(String, BinaryHeap<Reverse<(&&str, &PathBuf)>>)> =
+        strategy_breakdown.into_iter().collect();
     strategy_breakdowns.sort_by(|(_, a), (_, b)| b.len().cmp(&a.len()));
 
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
-    for (strategy, breakdowns) in strategy_breakdowns.iter() {
+    for (strategy, mut breakdowns) in strategy_breakdowns.into_iter() {
         stdout.set_color(&TITLE_COLOR).unwrap();
         write!(stdout, "{}", strategy).unwrap();
 
         stdout.set_color(&DEFAULT_COLOR).unwrap();
         writeln!(stdout, " ({})", breakdowns.len()).unwrap();
         if !options.condensed_output {
-            for (file, language) in breakdowns.iter() {
+            while let Some(Reverse((language, file))) = breakdowns.pop() {
                 stdout.set_color(&DEFAULT_COLOR).unwrap();
                 let path = strip_relative_parts(file);
                 write!(stdout, "{}", path.display()).unwrap();
