@@ -1,5 +1,6 @@
 use clap::{App, Arg};
 use lazy_static::lazy_static;
+use regex::Regex;
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap},
@@ -12,6 +13,7 @@ use hyperpolyglot::{get_language_breakdown, get_language_info, Detection, Langua
 
 struct CLIOptions {
     condensed_output: bool,
+    filter: Regex,
 }
 
 fn main() {
@@ -33,6 +35,10 @@ fn main() {
 
     let cli_options = CLIOptions {
         condensed_output: matches.is_present("condensed"),
+        filter: matches
+            .value_of("filter")
+            .map(|f| Regex::new(f).expect("Invalid filter"))
+            .unwrap_or(Regex::new("").unwrap()),
     };
 
     if matches.is_present("file-breakdown") {
@@ -71,6 +77,11 @@ fn get_cli<'a, 'b>() -> App<'a, 'b> {
                 .long("condensed")
                 .help("Condenses the output for the breakdowns to only show the counts"),
         )
+        .arg(
+            Arg::with_name("filter").short("f").long("filter").help(
+                "A regex that is used to filter the output for the file and streategy breakdown",
+            ).takes_value(true),
+        )
 }
 
 fn print_language_split(language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>) {
@@ -89,17 +100,19 @@ fn print_file_breakdown(
 ) {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     for (language, breakdowns) in language_counts.iter() {
-        stdout.set_color(&TITLE_COLOR).unwrap();
-        write!(stdout, "{}", language).unwrap();
+        if options.filter.is_match(language) {
+            stdout.set_color(&TITLE_COLOR).unwrap();
+            write!(stdout, "{}", language).unwrap();
 
-        stdout.set_color(&DEFAULT_COLOR).unwrap();
-        writeln!(stdout, " ({})", breakdowns.len()).unwrap();
-        if !options.condensed_output {
-            for (_, file) in breakdowns.iter() {
-                let path = strip_relative_parts(file);
-                writeln!(stdout, "{}", path.display()).unwrap();
+            stdout.set_color(&DEFAULT_COLOR).unwrap();
+            writeln!(stdout, " ({})", breakdowns.len()).unwrap();
+            if !options.condensed_output {
+                for (_, file) in breakdowns.iter() {
+                    let path = strip_relative_parts(file);
+                    writeln!(stdout, "{}", path.display()).unwrap();
+                }
+                writeln!(stdout, "").unwrap();
             }
-            writeln!(stdout, "").unwrap();
         }
     }
 }
@@ -124,21 +137,23 @@ fn print_strategy_breakdown(
 
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     for (strategy, mut breakdowns) in strategy_breakdowns.into_iter() {
-        stdout.set_color(&TITLE_COLOR).unwrap();
-        write!(stdout, "{}", strategy).unwrap();
+        if options.filter.is_match(&strategy[..]) {
+            stdout.set_color(&TITLE_COLOR).unwrap();
+            write!(stdout, "{}", strategy).unwrap();
 
-        stdout.set_color(&DEFAULT_COLOR).unwrap();
-        writeln!(stdout, " ({})", breakdowns.len()).unwrap();
-        if !options.condensed_output {
-            while let Some(Reverse((language, file))) = breakdowns.pop() {
-                stdout.set_color(&DEFAULT_COLOR).unwrap();
-                let path = strip_relative_parts(file);
-                write!(stdout, "{}", path.display()).unwrap();
+            stdout.set_color(&DEFAULT_COLOR).unwrap();
+            writeln!(stdout, " ({})", breakdowns.len()).unwrap();
+            if !options.condensed_output {
+                while let Some(Reverse((language, file))) = breakdowns.pop() {
+                    stdout.set_color(&DEFAULT_COLOR).unwrap();
+                    let path = strip_relative_parts(file);
+                    write!(stdout, "{}", path.display()).unwrap();
 
-                stdout.set_color(&LANGUAGE_COLOR).unwrap();
-                writeln!(stdout, " ({})", language).unwrap();
+                    stdout.set_color(&LANGUAGE_COLOR).unwrap();
+                    writeln!(stdout, " ({})", language).unwrap();
+                }
+                writeln!(stdout, "").unwrap();
             }
-            writeln!(stdout, "").unwrap();
         }
     }
 }
