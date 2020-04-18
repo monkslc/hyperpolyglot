@@ -3,6 +3,7 @@ name = "hyperpolyglot"
 version = "0.1.0"
 authors = ["Connor Monks <monkslc@gmail.com>"]
 edition = "2018"
+default-run = "hyply"
 
 [dependencies]
 clap = "2.33.0"
@@ -18,3 +19,7 @@ regex = "1.3.5"
 serde = { version = "1.0.105", features = ["derive"] }
 serde_yaml = "0.8"
 tokens = { path = "./tokens" }
+
+[[bin]]
+name = "hyply"
+path = "src/main.rs"
