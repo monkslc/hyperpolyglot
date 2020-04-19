@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use crate::tokenizer;
+
 // Include the map that counts token occurences per language
 // static TOKEN_COUNTS: phf::Map<&'static str, phf::Map<&'static str, f64>> = ...;
 include!("codegen/token-count.rs");
@@ -29,7 +31,6 @@ pub fn classify(
         _ => candidates,
     };
 
-    let tokens = tokens::tokenize(content)?;
     let mut scored_candidates: Vec<LanguageScore> = candidates
         .iter()
         .map(|language| {
@@ -38,8 +39,7 @@ pub fn classify(
                     // unwrap is safe here because the entry will be there if there was an entry in
                     // TOKEN_COUNTS for that language
                     let total_tokens = *TOTAL_TOKEN_COUNT.get(language).unwrap();
-                    tokens
-                        .iter()
+                    tokenizer::tokenize(content)
                         .filter(|token| token.len() <= MAX_TOKEN_BYTES)
                         .fold(0f64, |sum, token| {
                             let token_prob = token_probability(token_map, token, total_tokens).ln();
@@ -141,16 +141,6 @@ mod tests {
             token_probability(token_map_jup, "kSEFGUQI3rHsywBz1dB", tokens_jup);
             token_probability(token_map_objc, "setDefaultCredential", tokens_objc);
             token_probability(token_map_ts, "Not actually there990", tokens_ts);
-        });
-    }
-
-    #[bench]
-    #[ignore] // too expensive
-    fn bench_classify_long(b: &mut Bencher) {
-        let content = fs::read_to_string("samples/Rust/hashmap.rs").unwrap();
-        let content = &content[..];
-        b.iter(|| {
-            let _ = classify(content, &vec![]);
         });
     }
 

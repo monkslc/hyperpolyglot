@@ -20,6 +20,7 @@ mod extension;
 mod filenames;
 mod heuristics;
 mod interpreter;
+pub mod tokenizer;
 mod vendor;
 
 // Include the map that stores language info

@@ -8,6 +8,8 @@ use std::{
     iter,
 };
 
+use hyperpolyglot::tokenizer;
+
 type LanguageMap = HashMap<String, LanguageDTO>;
 type NamedPatterns = HashMap<String, MaybeMany<String>>;
 
@@ -375,7 +377,7 @@ fn train_classifier() {
             // When tokenizing an invalid utf8 string, just set it to ""
             // Add better error handling here in the future but unure of the best
             // way to handle it now
-            let tokens = tokens::tokenize(std::str::from_utf8(&content[..]).unwrap_or("")).unwrap();
+            let tokens = tokenizer::tokenize(std::str::from_utf8(&content[..]).unwrap_or(""));
 
             for token in tokens {
                 if token.len() <= MAX_TOKEN_BYTES {
