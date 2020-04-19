@@ -4,7 +4,7 @@ use regex::Regex;
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap},
-    io::Write,
+    io::{self, Write},
     path::PathBuf,
 };
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -37,18 +37,22 @@ fn main() {
         condensed_output: matches.is_present("condensed"),
         filter: matches
             .value_of("filter")
-            .map(|f| Regex::new(f).expect("Invalid filter"))
+            .map(|f| Regex::new(f).expect(&format!("Invalid Filter: {}", f)[..]))
             .unwrap_or(Regex::new("").unwrap()),
     };
 
     if matches.is_present("file-breakdown") {
         println!("");
-        print_file_breakdown(&language_count, &cli_options);
+        if let Err(_) = print_file_breakdown(&language_count, &cli_options) {
+            std::process::exit(1);
+        }
     }
 
     if matches.is_present("strategy-breakdown") {
         println!("");
-        print_strategy_breakdown(&language_count, &cli_options);
+        if let Err(_) = print_strategy_breakdown(&language_count, &cli_options) {
+            std::process::exit(1);
+        }
     }
 }
 
@@ -97,30 +101,31 @@ fn print_language_split(language_counts: &Vec<(&'static str, Vec<(Detection, Pat
 fn print_file_breakdown(
     language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>,
     options: &CLIOptions,
-) {
+) -> Result<(), io::Error> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     for (language, breakdowns) in language_counts.iter() {
         if options.filter.is_match(language) {
-            stdout.set_color(&TITLE_COLOR).unwrap();
-            write!(stdout, "{}", language).unwrap();
+            stdout.set_color(&TITLE_COLOR)?;
+            write!(stdout, "{}", language)?;
 
-            stdout.set_color(&DEFAULT_COLOR).unwrap();
-            writeln!(stdout, " ({})", breakdowns.len()).unwrap();
+            stdout.set_color(&DEFAULT_COLOR)?;
+            writeln!(stdout, " ({})", breakdowns.len())?;
             if !options.condensed_output {
                 for (_, file) in breakdowns.iter() {
                     let path = strip_relative_parts(file);
-                    writeln!(stdout, "{}", path.display()).unwrap();
+                    writeln!(stdout, "{}", path.display())?;
                 }
-                writeln!(stdout, "").unwrap();
+                writeln!(stdout, "")?;
             }
         }
     }
+    Ok(())
 }
 
 fn print_strategy_breakdown(
     language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>,
     options: &CLIOptions,
-) {
+) -> Result<(), io::Error> {
     let mut strategy_breakdown = HashMap::new();
     for (language, files) in language_counts.into_iter() {
         for (detection, file) in files.into_iter() {
@@ -138,24 +143,25 @@ fn print_strategy_breakdown(
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     for (strategy, mut breakdowns) in strategy_breakdowns.into_iter() {
         if options.filter.is_match(&strategy[..]) {
-            stdout.set_color(&TITLE_COLOR).unwrap();
-            write!(stdout, "{}", strategy).unwrap();
+            stdout.set_color(&TITLE_COLOR)?;
+            write!(stdout, "{}", strategy)?;
 
-            stdout.set_color(&DEFAULT_COLOR).unwrap();
-            writeln!(stdout, " ({})", breakdowns.len()).unwrap();
+            stdout.set_color(&DEFAULT_COLOR)?;
+            writeln!(stdout, " ({})", breakdowns.len())?;
             if !options.condensed_output {
                 while let Some(Reverse((language, file))) = breakdowns.pop() {
-                    stdout.set_color(&DEFAULT_COLOR).unwrap();
+                    stdout.set_color(&DEFAULT_COLOR)?;
                     let path = strip_relative_parts(file);
-                    write!(stdout, "{}", path.display()).unwrap();
+                    write!(stdout, "{}", path.display())?;
 
-                    stdout.set_color(&LANGUAGE_COLOR).unwrap();
-                    writeln!(stdout, " ({})", language).unwrap();
+                    stdout.set_color(&LANGUAGE_COLOR)?;
+                    writeln!(stdout, " ({})", language)?;
                 }
-                writeln!(stdout, "").unwrap();
+                writeln!(stdout, "")?;
             }
         }
     }
+    Ok(())
 }
 
 fn strip_relative_parts<'a>(path: &'a PathBuf) -> &'a std::path::Path {
