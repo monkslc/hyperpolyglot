@@ -196,7 +196,7 @@ fn main() {
 
     let heuristics: Heuristics =
         serde_yaml::from_str(&fs::read_to_string(HEURISTICS_SOURCE_FILE).unwrap()[..]).unwrap();
-    create_disambiguation_heuristics_map(&heuristics);
+    create_disambiguation_heuristics_map(heuristics);
 
     train_classifier();
 }
@@ -319,12 +319,20 @@ fn create_extension_map(languages: &LanguageMap) {
     .unwrap();
 }
 
-fn create_disambiguation_heuristics_map(heuristics: &Heuristics) {
+fn create_disambiguation_heuristics_map(heuristics: Heuristics) {
     let mut file = BufWriter::new(File::create(DISAMBIGUATION_HEURISTICS_FILE).unwrap());
 
     let mut temp_map: HashMap<String, String> = HashMap::new();
-    for dis in heuristics.disambiguations.iter() {
+    for mut dis in heuristics.disambiguations.into_iter() {
         for ext in dis.extensions.iter() {
+            // Adding a rule to default to C for .h if the Objective C and C++ patterns don't match
+            // The classifer was unreliable for distinguishing between C and C++ for .h
+            if ext == ".h" {
+                dis.rules.push(RuleDTO {
+                    language: MaybeMany::One(String::from("C")),
+                    pattern: None,
+                });
+            }
             let extension = ext.clone().to_ascii_lowercase();
             let key = format!("{}", extension);
             let value = format!("{}", dis.to_domain_object_code(&heuristics.named_patterns));
