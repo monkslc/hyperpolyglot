@@ -20,4 +20,4 @@ termcolor = "1.1.0"
 
 [[bin]]
 name = "hyply"
-path = "src/main.rs"
+path = "src/bin/main.rs"
