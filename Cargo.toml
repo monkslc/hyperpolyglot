@@ -6,11 +6,11 @@ edition = "2018"
 default-run = "hyply"
 
 [dependencies]
-num_cpus = "1.13.0"
 clap = "2.33.0"
 ignore = "0.4.1"
 lazy_static = "1.4.0"
 logos = "0.11.0"
+num_cpus = "1.13.0"
 pcre2 = "0.2.3"
 phf = "0.8"
 phf_codegen = "0.8.0"
