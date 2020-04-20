@@ -46,4 +46,12 @@ println!("{:?}", breakdown.get("Rust"));
 * When calculating the language makeup of a directory, file count is used instead of byte count.
 
 ### Benchmarks
-* TODO: add later
+Benchmarks were run using the command line tool [hyperfine](https://github.com/sharkdp/hyperfine)
+
+** samples dir **
+|Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
+|-------------------------------|---------|-----------|--------|--------|
+|hyperpolyglot (multi-threaded) |1,208    |1,210      |1,181   |1,247   |
+|hyperpolyglot (single-threaded)|2,472    |2,467      |2,421   |2,561   |
+|enry                           |21,653   |21,641     |21,552  |21,800  |
+|linguist                       |42,510   |42,527     |42,372  |42,680  |
