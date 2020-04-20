@@ -46,8 +46,10 @@ println!("{:?}", breakdown.get("Rust"));
 * When calculating the language makeup of a directory, file count is used instead of byte count.
 
 ### Benchmarks
-Benchmarks were run using the command line tool [hyperfine](https://github.com/sharkdp/hyperfine)
-
+* Benchmarks were run using the command line tool [hyperfine](https://github.com/sharkdp/hyperfine)
+* Benchmarks were run on a 8gb 3.1 GHz Dual-Core Intel Core i5 MacBook Pro
+* enry is a port of the [Linguist](https://github.com/github/linguist) library to go
+* Both enry and linguist are single-threaded
 **samples dir**
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
