@@ -50,6 +50,7 @@ println!("{:?}", breakdown.get("Rust"));
 * Benchmarks were run on a 8gb 3.1 GHz Dual-Core Intel Core i5 MacBook Pro
 * enry is a port of the [Linguist](https://github.com/github/linguist) library to go
 * Both enry and linguist are single-threaded
+
 **samples dir**
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
