@@ -6,6 +6,7 @@ edition = "2018"
 default-run = "hyply"
 
 [dependencies]
+num_cpus = "1.13.0"
 clap = "2.33.0"
 ignore = "0.4.1"
 lazy_static = "1.4.0"

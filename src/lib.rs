@@ -6,6 +6,7 @@
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
     collections::HashMap,
+    env,
     error::Error,
     fmt,
     fs::File,
@@ -192,8 +193,14 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
     let override_builder = documentation::add_override(override_builder);
     let override_builder = vendor::add_override(override_builder);
 
+    let num_threads = env::var_os("HYPLY_THREADS")
+        .and_then(|threads| threads.into_string().ok())
+        .and_then(|threads| threads.parse().ok())
+        .unwrap_or(num_cpus::get());
+
     let (tx, rx) = mpsc::channel::<(Detection, PathBuf)>();
     let walker = WalkBuilder::new(path)
+        .threads(num_threads)
         .overrides(override_builder.build().unwrap())
         .build_parallel();
     walker.run(|| {

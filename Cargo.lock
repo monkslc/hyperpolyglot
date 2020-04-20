@@ -157,6 +157,7 @@ dependencies = [
  "ignore",
  "lazy_static",
  "logos",
+ "num_cpus",
  "pcre2",
  "phf",
  "phf_codegen",
@@ -247,6 +248,16 @@ name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
+
+[[package]]
+name = "num_cpus"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05499f3756671c15885fee9034446956fff3f243d6077b91e5767df161f766b3"
+dependencies = [
+ "hermit-abi",
+ "libc",
+]
 
 [[package]]
 name = "pcre2"
