@@ -58,3 +58,11 @@ println!("{:?}", breakdown.get("Rust"));
 |hyperpolyglot (single-threaded)|2,472    |2,467      |2,421   |2,561   |
 |enry                           |21,653   |21,641     |21,552  |21,800  |
 |linguist                       |42,510   |42,527     |42,372  |42,680  |
+
+**[Rust](https://github.com/rust-lang/rust)**
+|Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
+|-------------------------------|---------|-----------|--------|--------|
+|hyperpolyglot (multi-threaded) |3,958    |3,918      |3,788   |4,201   |
+|hyperpolyglot (single-threaded)|8,795    |8,770      |8,689   |9,011   |
+|enry                           |85,810   |83,779     |82,980  |101,145 |
+|linguist                       |200,050  |200,118    |198,803 |203,218 |
