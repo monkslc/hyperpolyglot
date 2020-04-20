@@ -48,7 +48,7 @@ println!("{:?}", breakdown.get("Rust"));
 ### Benchmarks
 Benchmarks were run using the command line tool [hyperfine](https://github.com/sharkdp/hyperfine)
 
-** samples dir **
+**samples dir**
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
 |hyperpolyglot (multi-threaded) |1,208    |1,210      |1,181   |1,247   |
