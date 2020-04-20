@@ -11,7 +11,7 @@ A fast programming language detector. Hyperpolyglot is a port of Github's [Lingu
 `hyply --help`
 
 ### Library
-** Adding as a dependency **
+**Adding as a dependency**
 
 ```TOML
 [dependencies]
