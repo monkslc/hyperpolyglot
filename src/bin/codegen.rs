@@ -174,10 +174,9 @@ const DISAMBIGUATION_HEURISTICS_FILE: &str = "src/codegen/disambiguation-heurist
 const EXTENSION_MAP_FILE: &str = "src/codegen/extension-language-map.rs";
 const FILENAME_MAP_FILE: &str = "src/codegen/filename-language-map.rs";
 const INTERPRETER_MAP_FILE: &str = "src/codegen/interpreter-language-map.rs";
-const LANGUAGE_LIST_FILE: &str = "src/codegen/languages.rs";
 const LANGUAGE_INFO_FILE: &str = "src/codegen/language-info-map.rs";
-const TOKEN_COUNT_FILE: &str = "src/codegen/token-count.rs";
-const TOTAL_TOKEN_COUNT_FILE: &str = "src/codegen/total-token-count.rs";
+const LANGUAGE_LIST_FILE: &str = "src/codegen/languages.rs";
+const TOKEN_LOG_PROBABILITY_FILE: &str = "src/codegen/token-log-probabilities.rs";
 
 const HEURISTICS_SOURCE_FILE: &str = "heuristics.yml";
 const LANGUAGE_SOURCE_FILE: &str = "languages.yml";
@@ -402,38 +401,25 @@ fn train_classifier() {
             }
         });
 
-    // Write total token counts
-    let mut file = BufWriter::new(File::create(TOTAL_TOKEN_COUNT_FILE).unwrap());
-    let mut total_token_count = PhfMap::new();
-    for (key, value) in temp_total_tokens_count.iter() {
-        let value = format!("{}f64", value);
-        total_token_count.entry(key.as_str(), value.as_str());
-    }
-
-    writeln!(
-        &mut file,
-        "static TOTAL_TOKEN_COUNT: phf::Map<&'static str, f64> =\n{};\n",
-        total_token_count.build()
-    )
-    .unwrap();
-
-    // Write token counts
-    let mut file = BufWriter::new(File::create(TOKEN_COUNT_FILE).unwrap());
-    let mut language_to_token_map = PhfMap::new();
-    for (language, token_map) in temp_token_count.iter() {
-        let mut token_to_count_map = PhfMap::new();
-        for (token, count) in token_map.iter() {
-            let value = format!("{}f64", count);
-            token_to_count_map.entry(&token[..], &value[..]);
+    // Write token log probabilities
+    let mut file = BufWriter::new(File::create(TOKEN_LOG_PROBABILITY_FILE).unwrap());
+    let mut language_token_log_probabilities = PhfMap::new();
+    for (language, token_count_map) in temp_token_count.iter() {
+        let total_tokens = *temp_total_tokens_count.get(language).unwrap() as f64;
+        let mut token_log_probabilities = PhfMap::new();
+        for (token, token_count) in token_count_map.iter() {
+            let probability = (*token_count as f64) / (total_tokens);
+            let log_probability = probability.ln();
+            token_log_probabilities.entry(&token[..], &format!("{}", log_probability)[..]);
         }
-        let value = format!("{}", token_to_count_map.build());
-        language_to_token_map.entry(&language[..], &value[..]);
+        let codegen_log_prob_map = format!("{}", token_log_probabilities.build());
+        language_token_log_probabilities.entry(&language[..], &codegen_log_prob_map[..]);
     }
 
     writeln!(
         &mut file,
-        "static TOKEN_COUNTS: phf::Map<&'static str, phf::Map<&'static str, f64>> =\n{};\n",
-        language_to_token_map.build()
+        "static TOKEN_LOG_PROBABILITIES: phf::Map<&'static str, phf::Map<&'static str, f64>> =\n{};\n",
+        language_token_log_probabilities.build()
     )
     .unwrap();
 }
