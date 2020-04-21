@@ -3,7 +3,7 @@ use regex::Regex;
 
 // Include the map from interpreters to languages at compile time
 // static INTERPRETERS: phf::Map<&'static str, &[&str]> = ...;
-include!("codegen/interpreter-language-map.rs");
+include!("../codegen/interpreter-language-map.rs");
 
 pub fn get_languages_from_shebang<R: std::io::BufRead>(
     reader: R,

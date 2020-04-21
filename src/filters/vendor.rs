@@ -1,6 +1,6 @@
 use ignore::overrides::OverrideBuilder;
 
-pub fn add_override(mut builder: OverrideBuilder) -> OverrideBuilder {
+pub fn add_vendor_override(mut builder: OverrideBuilder) -> OverrideBuilder {
     // Caches
     builder.add("!**/cache/**").unwrap();
 
@@ -369,7 +369,9 @@ mod tests {
 
     #[test]
     fn test_override_single_dir() {
-        let vo = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let vo = add_vendor_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(vo.matched("cache/", true).is_ignore());
         assert!(vo.matched("cache/file.ext", false).is_ignore());
         assert!(vo.matched("first-dir/cache/file.ext", false).is_ignore());
@@ -378,7 +380,9 @@ mod tests {
 
     #[test]
     fn test_override_character_set() {
-        let vo = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let vo = add_vendor_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(vo.matched("Dependencies/module", true).is_ignore());
         assert!(vo.matched("Dependencies/mod/file.ext", false).is_ignore());
         assert!(vo.matched("dependencies/mod/file.ext", false).is_ignore());
@@ -387,7 +391,9 @@ mod tests {
 
     #[test]
     fn test_override_matches_file() {
-        let vo = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let vo = add_vendor_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(vo.matched("some/configure", true).is_ignore());
         assert!(vo.matched("configure", true).is_ignore());
         assert!(vo.matched("dir/dirs/config.guess", false).is_ignore());
@@ -397,13 +403,17 @@ mod tests {
 
     #[test]
     fn test_override_multiple_dirs() {
-        let vo = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let vo = add_vendor_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(vo.matched("dir/.yarn/releases/file.ext", false).is_ignore());
     }
 
     #[test]
     fn test_override_pattern_list() {
-        let vo = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let vo = add_vendor_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(vo.matched("dir/some-min.js", false).is_ignore());
         assert!(vo.matched("dir/some.min.js", false).is_ignore());
         assert!(vo.matched("dir/some.min.css", false).is_ignore());
@@ -411,7 +421,9 @@ mod tests {
 
     #[test]
     fn test_override_character_set_in_pattern_list() {
-        let vo = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let vo = add_vendor_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(vo.matched("dir/microsoftAjax.js", false).is_ignore());
         assert!(vo.matched("dir/microsoftajax.js", false).is_ignore());
     }

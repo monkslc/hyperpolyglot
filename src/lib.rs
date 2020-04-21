@@ -15,14 +15,9 @@ use std::{
     sync::mpsc,
 };
 
-mod classifier;
-mod documentation;
-mod extension;
-mod filenames;
-mod heuristics;
-mod interpreter;
+mod detectors;
+mod filters;
 pub mod tokenizer;
-mod vendor;
 
 // Include the map that stores language info
 // static LANGUAGE_INFO: phf::Map<&'static str, Language> = ...;
@@ -110,15 +105,15 @@ impl Detection {
 pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
-    let candidate = filename.and_then(|filename| filenames::get_language_from_filename(filename));
+    let candidate = filename.and_then(|filename| detectors::get_language_from_filename(filename));
     if let Some(candidate) = candidate {
         return Ok(Some(Detection::Filename(candidate)));
     };
 
-    let extension = filename.and_then(|filename| extension::get(filename));
+    let extension = filename.and_then(|filename| detectors::get_extension(filename));
 
     let candidates = extension
-        .map(|ext| extension::get_languages_from_extension(ext))
+        .map(|ext| detectors::get_languages_from_extension(ext))
         .unwrap_or(vec![]);
 
     if candidates.len() == 1 {
@@ -130,7 +125,7 @@ pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
 
     let candidates = filter_candidates(
         candidates,
-        interpreter::get_languages_from_shebang(&mut reader)?,
+        detectors::get_languages_from_shebang(&mut reader)?,
     );
     if candidates.len() == 1 {
         return Ok(Some(Detection::Shebang(candidates[0])));
@@ -146,7 +141,7 @@ pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
     let candidates = if candidates.len() > 1 {
         if let Some(extension) = extension {
             let languages =
-                heuristics::get_languages_from_heuristics(&extension[..], &candidates, &content);
+                detectors::get_languages_from_heuristics(&extension[..], &candidates, &content);
             filter_candidates(candidates, languages)
         } else {
             candidates
@@ -158,13 +153,14 @@ pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
     match candidates.len() {
         0 => Ok(None),
         1 => Ok(Some(Detection::Heuristics(candidates[0]))),
-        _ => Ok(Some(Detection::Classifier(classifier::classify(
+        _ => Ok(Some(Detection::Classifier(detectors::classify(
             &content,
             &candidates,
         )?))),
     }
 }
 
+// function stolen from from https://doc.rust-lang.org/nightly/src/core/str/mod.rs.html
 fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
     if max >= s.len() {
         s
@@ -190,8 +186,8 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
     path: P,
 ) -> HashMap<&'static str, Vec<(Detection, PathBuf)>> {
     let override_builder = OverrideBuilder::new(&path);
-    let override_builder = documentation::add_override(override_builder);
-    let override_builder = vendor::add_override(override_builder);
+    let override_builder = filters::add_documentation_override(override_builder);
+    let override_builder = filters::add_vendor_override(override_builder);
 
     let num_threads = env::var_os("HYPLY_THREADS")
         .and_then(|threads| threads.into_string().ok())

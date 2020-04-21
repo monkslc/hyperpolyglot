@@ -1,6 +1,6 @@
 // Include the map from extensions to languages at compile time
 // static EXTENSIONS: phf::Map<&'static str, &[&str]> = ...;
-include!("codegen/extension-language-map.rs");
+include!("../codegen/extension-language-map.rs");
 
 pub fn get_languages_from_extension(extension: &str) -> Vec<&'static str> {
     let languages = EXTENSIONS
@@ -13,7 +13,7 @@ pub fn get_languages_from_extension(extension: &str) -> Vec<&'static str> {
     }
 }
 
-pub fn get(filename: &str) -> Option<&'static str> {
+pub fn get_extension(filename: &str) -> Option<&'static str> {
     let filename = if filename.starts_with(".") {
         &filename[1..]
     } else {
@@ -49,13 +49,13 @@ mod tests {
     }
 
     #[test]
-    fn test_get() {
-        assert_eq!(get("index.djs"), Some(".djs"));
-        assert_eq!(get("example.cmake.in"), Some(".cmake.in"));
-        assert_eq!(get("nonsense.notrealextension.c"), Some(".c"));
-        assert_eq!(get("uppercase.C"), Some(".c"));
-        assert_eq!(get(".eslintrc.json"), Some(".json"));
-        assert_eq!(get(".cs"), None);
-        assert_eq!(get("noextension"), None);
+    fn test_get_extension() {
+        assert_eq!(get_extension("index.djs"), Some(".djs"));
+        assert_eq!(get_extension("example.cmake.in"), Some(".cmake.in"));
+        assert_eq!(get_extension("nonsense.notrealextension.c"), Some(".c"));
+        assert_eq!(get_extension("uppercase.C"), Some(".c"));
+        assert_eq!(get_extension(".eslintrc.json"), Some(".json"));
+        assert_eq!(get_extension(".cs"), None);
+        assert_eq!(get_extension("noextension"), None);
     }
 }

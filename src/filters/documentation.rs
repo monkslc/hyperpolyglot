@@ -1,6 +1,6 @@
 use ignore::overrides::OverrideBuilder;
 
-pub fn add_override(mut builder: OverrideBuilder) -> OverrideBuilder {
+pub fn add_documentation_override(mut builder: OverrideBuilder) -> OverrideBuilder {
     // Documentation directories
     builder.add("!**/[Dd]ocs/**").unwrap();
     builder.add("!**/[Dd]oc/**").unwrap();
@@ -38,7 +38,9 @@ mod tests {
 
     #[test]
     fn test_documentation_directories() {
-        let doco = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let doco = add_documentation_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(doco.matched("/dir/Docs/docfile.ext", false).is_ignore());
         assert!(doco.matched("/dir/Docs/", true).is_ignore());
         assert!(doco.matched("Docs/", true).is_ignore());
@@ -47,7 +49,9 @@ mod tests {
 
     #[test]
     fn test_documentation_files() {
-        let doco = add_override(OverrideBuilder::new("./")).build().unwrap();
+        let doco = add_documentation_override(OverrideBuilder::new("./"))
+            .build()
+            .unwrap();
         assert!(doco.matched("/dir/CHANGELOG.md", false).is_ignore());
         assert!(doco.matched("/dir/CHANGELOG", false).is_ignore());
         assert!(doco.matched("/dir/NOT", false).is_none());

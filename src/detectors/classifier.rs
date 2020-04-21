@@ -4,11 +4,11 @@ use crate::tokenizer;
 
 // Include the map that contains the token log probabilities
 // static TOKEN_LOG_PROBABILITIES: phf::Map<&'static str, f64> = ...;
-include!("codegen/token-log-probabilities.rs");
+include!("../codegen/token-log-probabilities.rs");
 
 // Include the array of all possible languages
 // static LANGUAGES: &[&'static str] = ...;
-include!("codegen/languages.rs");
+include!("../codegen/languages.rs");
 
 const MAX_TOKEN_BYTES: usize = 32;
 const DEFAULT_LOG_PROB: f64 = -19f64;
