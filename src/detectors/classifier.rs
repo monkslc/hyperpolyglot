@@ -58,10 +58,8 @@ pub fn classify(
 
 #[cfg(test)]
 mod tests {
-    extern crate test;
     use super::*;
     use std::fs;
-    use test::Bencher;
 
     #[test]
     fn test_classify() {
@@ -110,12 +108,5 @@ mod tests {
         let candidates = vec![];
         let language = classify(content.as_str(), &candidates).unwrap();
         assert_eq!(language, "F*");
-    }
-
-    #[bench]
-    fn bench_classify_short(b: &mut Bencher) {
-        b.iter(|| {
-            let _ = classify("fn main() {}", &vec![]);
-        });
     }
 }

@@ -1,7 +1,6 @@
 //! # Hyperpolyglot
 //! `hyperpolyglot` is a crate for detecting the programming language of a file or the language
 //! breakdown for a directory.
-#![feature(test)]
 
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
