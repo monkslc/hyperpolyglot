@@ -12,8 +12,27 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use hyperpolyglot::{get_language_breakdown, get_language_info, Detection, LanguageType};
 
 struct CLIOptions {
+    color: bool,
     condensed_output: bool,
-    filter: Regex,
+    filters: Option<Vec<Regex>>,
+}
+
+impl CLIOptions {
+    fn matches_filter(&self, pattern: &str) -> bool {
+        if let Some(filters) = &self.filters {
+            filters.iter().any(|filter| filter.is_match(pattern))
+        } else {
+            true
+        }
+    }
+
+    fn color_option(&self) -> ColorChoice {
+        if self.color {
+            ColorChoice::Auto
+        } else {
+            ColorChoice::Never
+        }
+    }
 }
 
 fn main() {
@@ -34,11 +53,14 @@ fn main() {
     print_language_split(&language_count);
 
     let cli_options = CLIOptions {
+        color: !matches.is_present("no-color"),
         condensed_output: matches.is_present("condensed"),
-        filter: matches
-            .value_of("filter")
-            .map(|f| Regex::new(f).expect(&format!("Invalid Filter: {}", f)[..]))
-            .unwrap_or(Regex::new("").unwrap()),
+        filters: matches
+            .values_of("filter")
+            .map(|filters| {
+                filters.map(|f| Regex::new(f).expect(&format!("Invalid filter: {}", f)[..]))
+            })
+            .map(|filters| filters.collect()),
     };
 
     if matches.is_present("file-breakdown") {
@@ -59,32 +81,37 @@ fn main() {
 fn get_cli<'a, 'b>() -> App<'a, 'b> {
     App::new("Hyperpolyglot")
         .version("0.1.0")
-        .about("Get the programming language breakdown for a file.")
+        .about("Hyperpolyglot is a programming language detector. It supports detecting the programming language of a file or the programming language makeup of a directory.")
         .arg(Arg::with_name("PATH").index(1).default_value("."))
         .arg(
             Arg::with_name("file-breakdown")
                 .short("b")
                 .long("breakdown")
-                .help("prints the language detected for each file it visits"),
+                .help("prints the language detected for each file visited"),
         )
         .arg(
             Arg::with_name("strategy-breakdown")
                 .short("s")
                 .long("strategies")
                 .help(
-                    "Prints each strategy used and what files were determined using that strategy",
+                    "Prints each strategy used and what files were detected using that strategy",
                 ),
         )
         .arg(
             Arg::with_name("condensed")
                 .short("c")
                 .long("condensed")
-                .help("Condenses the output for the breakdowns to only show the counts"),
+                .help("Condenses the output for the breakdowns to only show the headers"),
         )
         .arg(
             Arg::with_name("filter").short("f").long("filter").help(
-                "A regex that is used to filter the output for the file and streategy breakdown",
-            ).takes_value(true),
+                "A regex that is used to filter by header which sections get printed for the file and strategy breakdown.",
+            ).takes_value(true).multiple(true),
+        )
+        .arg(
+            Arg::with_name("no-color").short("n").long("no-color").help(
+                "Don't color code the output of the breakdowns. This is useful when piping/redirecting the output of hyperpolyglot.",
+            ),
         )
 }
 
@@ -102,9 +129,9 @@ fn print_file_breakdown(
     language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>,
     options: &CLIOptions,
 ) -> Result<(), io::Error> {
-    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut stdout = StandardStream::stdout(options.color_option());
     for (language, breakdowns) in language_counts.iter() {
-        if options.filter.is_match(language) {
+        if options.matches_filter(language) {
             stdout.set_color(&TITLE_COLOR)?;
             write!(stdout, "{}", language)?;
 
@@ -140,9 +167,9 @@ fn print_strategy_breakdown(
         strategy_breakdown.into_iter().collect();
     strategy_breakdowns.sort_by(|(_, a), (_, b)| b.len().cmp(&a.len()));
 
-    let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut stdout = StandardStream::stdout(options.color_option());
     for (strategy, mut breakdowns) in strategy_breakdowns.into_iter() {
-        if options.filter.is_match(&strategy[..]) {
+        if options.matches_filter(&strategy[..]) {
             stdout.set_color(&TITLE_COLOR)?;
             write!(stdout, "{}", strategy)?;
 
