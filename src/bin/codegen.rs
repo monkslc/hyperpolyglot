@@ -20,14 +20,18 @@ struct LanguageDTO {
     extensions: Option<Vec<String>>,
     #[serde(rename(deserialize = "type"))]
     language_type: LanguageType,
+    color: Option<String>,
+    group: Option<String>,
 }
 
 impl LanguageDTO {
     fn to_domain_object_code(&self, name: &str) -> String {
         format!(
-            "Language {{ name: \"{}\", language_type: {} }}",
+            "Language {{ name: \"{}\", language_type: {}, color: {:?}, group: {:?} }}",
             name,
-            self.language_type.to_domain_object_code()
+            self.language_type.to_domain_object_code(),
+            self.color,
+            self.group
         )
     }
 }

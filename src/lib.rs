@@ -1,6 +1,7 @@
 //! # Hyperpolyglot
-//! `hyperpolyglot` is a crate for detecting the programming language of a file or the language
-//! breakdown for a directory.
+//! `hyperpolyglot` is a fast programming language detector. It can guess the language of a file
+//! using the `detect` function or the language makeup of a directory using the
+//! `get_language_breakdown` function.
 
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
@@ -27,8 +28,14 @@ const MAX_CONTENT_SIZE_BYTES: usize = 51200;
 /// The language object that conatins the name and the type of language
 #[derive(Debug)]
 pub struct Language<'a> {
+    /// The name of the language
     pub name: &'a str,
+    /// Type of language. ex/ Data, Programming, Markup, Prose
     pub language_type: LanguageType,
+    /// The css hex color used to represent the language on github
+    pub color: Option<&'static str>,
+    /// Name of the parent language. ex/ The group for TSX would be TypeScript
+    pub group: Option<&'static str>,
 }
 
 /// The set of possible language types
@@ -459,5 +466,14 @@ mod tests {
         assert!(get_language_breakdown("temp-testing-dir2").is_empty());
 
         fs::remove_dir_all("temp-testing-dir2").unwrap();
+    }
+
+    #[test]
+    fn test_get_language_info() {
+        let language = get_language_info("Rust").unwrap();
+        assert_eq!(language.name, "Rust");
+        assert_eq!(language.color, Some("#dea584"));
+        assert_eq!(language.group, None);
+        assert_eq!(language.language_type.to_string(), "Programming");
     }
 }
