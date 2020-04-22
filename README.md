@@ -1,13 +1,13 @@
 # hyperpolyglot
 ### A fast programming language detector.
-Hyperpolyglot is a port of Github's [Linguist](https://github.com/github/linguist) Ruby library to Rust. Hyperpolyglot supports detecting the programming language of a file or detecting the programming language makeup of a directory. For more details on how the language detection is done, see the [Linguist](https://github.com/github/linguist) [README](https://github.com/github/linguist/blob/master/README.md).
+Hyperpolyglot is a fast programming language detector written in Rust based on Github's [Linguist](https://github.com/github/linguist) Ruby library. Hyperpolyglot supports detecting the programming language of a file or detecting the programming language makeup of a directory. For more details on how the language detection is done, see the [Linguist](https://github.com/github/linguist) [README](https://github.com/github/linguist/blob/master/README.md).
 
 ### CLI
 **Installing**
 `cargo install hyperpolyglot`
 
 **Usage**
-`hyply --help`
+`hyply [PATH]`
 
 ### Library
 **Adding as a dependency**
@@ -68,4 +68,4 @@ println!("{:?}", breakdown.get("Rust"));
 |Linguist                       |200,050  |200,118    |198,803 |203,218 |
 
 ### Accuracy
-All of the programming language detectors are far from perfect and hyperpolyglot is no exception. It's language detections mirror [Linguist](https://github.com/github/linguist) and [enry](https://github.com/go-enry/go-enry) for most files. The biggest differences occur in files that rely on the classifier. Files that can be detected through a common known filename, an extension, or by following the set of [heuristics](https://github.com/monkslc/hyperpolyglot/blob/master/heuristics.yml) should approach 100% accuracy.
+All of the programming language detectors are far from perfect and hyperpolyglot is no exception. It's language detections mirror [Linguist](https://github.com/github/linguist) and [enry](https://github.com/go-enry/go-enry) for most files with the biggest divergences coming from files that need to fall back on the classifier. Files that can be detected through a common known filename, an extension, or by following the set of [heuristics](https://github.com/monkslc/hyperpolyglot/blob/master/heuristics.yml) should approach 100% accuracy.
