@@ -69,3 +69,20 @@ println!("{:?}", breakdown.get("Rust"));
 
 ### Accuracy
 All of the programming language detectors are far from perfect and hyperpolyglot is no exception. It's language detections mirror [Linguist](https://github.com/github/linguist) and [enry](https://github.com/go-enry/go-enry) for most files with the biggest divergences coming from files that need to fall back on the classifier. Files that can be detected through a common known filename, an extension, or by following the set of [heuristics](https://github.com/monkslc/hyperpolyglot/blob/master/heuristics.yml) should approach 100% accuracy.
+
+## License
+
+Licensed under either of
+
+ * Apache License, Version 2.0
+   ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license
+   ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+## Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
