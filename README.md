@@ -54,18 +54,28 @@ println!("{:?}", breakdown.get("Rust"));
 **[samples](https://github.com/monkslc/hyperpolyglot/tree/master/samples) dir**
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
-|hyperpolyglot (multi-threaded) |1,208    |1,210      |1,181   |1,247   |
-|hyperpolyglot (single-threaded)|2,472    |2,467      |2,421   |2,561   |
-|enry                           |21,653   |21,641     |21,552  |21,800  |
-|Linguist                       |42,510   |42,527     |42,372  |42,680  |
+|hyperpolyglot (multi-threaded) |1,188    |1,186      |1,166   |1,226   |
+|hyperpolyglot (single-threaded |2,424    |2,424      |2,414   |2,442   |
+|enry                           |21,619   |21,566     |21,514  |21,855  |
+|Linguist                       |42,407   |42,386     |42,070  |42,856  |
 
 **[Rust](https://github.com/rust-lang/rust) Repo**
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
-|hyperpolyglot (multi-threaded) |3,958    |3,918      |3,788   |4,201   |
-|hyperpolyglot (single-threaded)|8,795    |8,770      |8,689   |9,011   |
-|enry                           |85,810   |83,779     |82,980  |101,145 |
-|Linguist                       |200,050  |200,118    |198,803 |203,218 |
+|hyperpolyglot (multi-threaded) |3,808    |3,751      |3,708   |4,253   |
+|hyperpolyglot (single-threaded)|8,341    |8,334      |8,276   |8,437   |
+|enry                           |82,300   |82,215     |82,021  |82,817  |
+|Linguist                       |196,780  |197,300    |194,033 |202,930 |
+
+**[Linux](https://github.com/torvalds/linux) Kernel**
+* The reason hyperpolyglot is so much faster here is the heuristic added to .h files which significantly speeds up detection for .h files that can't be classified with the Objective-C or C++ heuristics
+* Linguist was too slow to benchmark here
+|Tool                           |mean (s)|median (s)|min (s) |max (s) |
+|-------------------------------|---------|---------|------- |------- |
+|hyperpolyglot (multi-threaded) |3.7574   |3.7357   |3.7227  |3.9021  |
+|hyperpolyglot (single-threaded)|7.5833   |7.5683   |7.5445  |7.6489  |
+|enry                           |137.6046 |137.4229 |137.1955|138.8694|
+
 
 ### Accuracy
 All of the programming language detectors are far from perfect and hyperpolyglot is no exception. It's language detections mirror [Linguist](https://github.com/github/linguist) and [enry](https://github.com/go-enry/go-enry) for most files with the biggest divergences coming from files that need to fall back on the classifier. Files that can be detected through a common known filename, an extension, or by following the set of [heuristics](https://github.com/monkslc/hyperpolyglot/blob/master/heuristics.yml) should approach 100% accuracy.
