@@ -4,12 +4,13 @@ use regex::Regex;
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap},
+    convert::TryFrom,
     io::{self, Write},
     path::PathBuf,
 };
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use hyperpolyglot::{get_language_breakdown, get_language_info, Detection, LanguageType};
+use hyperpolyglot::{get_language_breakdown, Detection, Language, LanguageType};
 
 struct CLIOptions {
     color: bool,
@@ -43,8 +44,8 @@ fn main() {
     let mut language_count: Vec<(&'static str, Vec<(Detection, PathBuf)>)> = breakdown
         .into_iter()
         .filter(|(language_name, _)| {
-            match get_language_info(language_name).map(|l| &l.language_type) {
-                Some(LanguageType::Markup) | Some(LanguageType::Programming) => true,
+            match Language::try_from(*language_name).map(|l| l.language_type) {
+                Ok(LanguageType::Markup) | Ok(LanguageType::Programming) => true,
                 _ => false,
             }
         })

@@ -1,11 +1,10 @@
 //! # Hyperpolyglot
-//! `hyperpolyglot` is a fast programming language detector. It can guess the language of a file
-//! using the `detect` function or the language makeup of a directory using the
-//! `get_language_breakdown` function.
+//! `hyperpolyglot` is a fast programming language detector.
 
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
     collections::HashMap,
+    convert::TryFrom,
     env,
     error::Error,
     fmt,
@@ -27,15 +26,47 @@ const MAX_CONTENT_SIZE_BYTES: usize = 51200;
 
 /// The language object that conatins the name and the type of language
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Language<'a> {
+pub struct Language {
     /// The name of the language
-    pub name: &'a str,
+    pub name: &'static str,
     /// Type of language. ex/ Data, Programming, Markup, Prose
     pub language_type: LanguageType,
-    /// The css hex color used to represent the language on github
+    /// The css hex color used to represent the language on github. ex/ #dea584
     pub color: Option<&'static str>,
     /// Name of the parent language. ex/ The group for TSX would be TypeScript
     pub group: Option<&'static str>,
+}
+
+/// Returns the language that matches the name passed in
+///
+/// If the function is called with a language returned from `detect` or `get_language_breakdown`
+/// then the value can be unwrapped because it is guaranteed to be there
+///
+/// # Examples
+/// ```
+/// use hyperpolyglot::{Language, LanguageType};
+/// use std::convert::TryFrom;
+///
+/// let language = Language::try_from("Rust").unwrap();
+/// let expected = Language {
+///     name: "Rust",
+///     language_type: LanguageType::Programming,
+///     color: Some("#dea584"),
+///     group: None,
+/// };
+/// assert_eq!(language, expected)
+/// ```
+///
+/// # Errors
+/// `try_from` will error if the langauge name is not recognized
+impl TryFrom<&str> for Language {
+    type Error = &'static str;
+    fn try_from(name: &str) -> Result<Self, Self::Error> {
+        LANGUAGE_INFO
+            .get(name)
+            .map(|l| *l)
+            .ok_or("Language not found")
+    }
 }
 
 /// The set of possible language types
@@ -254,20 +285,6 @@ fn filter_candidates(
     }
 }
 
-/// Returns the info about a language given a language name
-///
-/// If the function is called with a language returned from `detect` or `get_language_breakdown`
-/// then the value can be unwrapped because it is guaranteed to be there
-///
-/// # Examples
-/// ```
-/// let info = hyperpolyglot::get_language_info("Rust").unwrap();
-/// assert_eq!(info.language_type.to_string(), "Programming")
-/// ```
-pub fn get_language_info(name: &str) -> Option<&Language> {
-    LANGUAGE_INFO.get(name)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -466,14 +483,5 @@ mod tests {
         assert!(get_language_breakdown("temp-testing-dir2").is_empty());
 
         fs::remove_dir_all("temp-testing-dir2").unwrap();
-    }
-
-    #[test]
-    fn test_get_language_info() {
-        let language = get_language_info("Rust").unwrap();
-        assert_eq!(language.name, "Rust");
-        assert_eq!(language.color, Some("#dea584"));
-        assert_eq!(language.group, None);
-        assert_eq!(language.language_type.to_string(), "Programming");
     }
 }
