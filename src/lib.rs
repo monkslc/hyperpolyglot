@@ -26,7 +26,7 @@ include!("codegen/language-info-map.rs");
 const MAX_CONTENT_SIZE_BYTES: usize = 51200;
 
 /// The language object that conatins the name and the type of language
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Language<'a> {
     /// The name of the language
     pub name: &'a str,
@@ -39,7 +39,7 @@ pub struct Language<'a> {
 }
 
 /// The set of possible language types
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum LanguageType {
     Data,
     Markup,
@@ -60,7 +60,7 @@ impl fmt::Display for LanguageType {
 
 /// An enum where the variant is the streategy that detected the language and the value is the name
 /// of the language
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Detection {
     Filename(&'static str),
     Extension(&'static str),
