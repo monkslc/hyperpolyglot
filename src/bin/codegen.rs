@@ -189,7 +189,7 @@ const MAX_TOKEN_BYTES: usize = 32;
 
 fn main() {
     let languages: LanguageMap =
-        serde_yaml::from_str(&fs::read_to_string(&LANGUAGE_SOURCE_FILE).unwrap()[..]).unwrap();
+        serde_yaml::from_reader(File::open(LANGUAGE_SOURCE_FILE).unwrap()).unwrap();
 
     write_language_list(&languages);
     write_language_info(&languages);
@@ -244,7 +244,7 @@ fn create_filename_map(languages: &LanguageMap) {
         if let Some(filenames) = &language.filenames {
             for filename in filenames.iter() {
                 filename_to_language_map
-                    .entry(&filename[..], format!("\"{}\"", language_name).as_str());
+                    .entry(&filename[..], &format!("\"{}\"", language_name)[..]);
             }
         }
     }
@@ -260,16 +260,16 @@ fn create_filename_map(languages: &LanguageMap) {
 fn create_interpreter_map(languages: &LanguageMap) {
     let mut file = BufWriter::new(File::create(INTERPRETER_MAP_FILE).unwrap());
 
-    let mut temp_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut temp_map: HashMap<&String, Vec<&String>> = HashMap::new();
     for (language_name, language) in languages.iter() {
         if let Some(interpreters) = &language.interpreters {
             for interpreter in interpreters.iter() {
                 match temp_map.get_mut(interpreter) {
                     Some(entry) => {
-                        entry.push(language_name.clone());
+                        entry.push(language_name);
                     }
                     None => {
-                        temp_map.insert(interpreter.clone(), vec![language_name.clone()]);
+                        temp_map.insert(interpreter, vec![language_name]);
                     }
                 }
             }
@@ -278,7 +278,7 @@ fn create_interpreter_map(languages: &LanguageMap) {
 
     let mut interpreter_to_language_map = PhfMap::new();
     for (interpreter, languages) in temp_map.iter() {
-        interpreter_to_language_map.entry(&interpreter[..], format!("&{:?}", languages).as_str());
+        interpreter_to_language_map.entry(&interpreter[..], &format!("&{:?}", languages)[..]);
     }
 
     writeln!(
@@ -292,17 +292,17 @@ fn create_interpreter_map(languages: &LanguageMap) {
 fn create_extension_map(languages: &LanguageMap) {
     let mut file = BufWriter::new(File::create(EXTENSION_MAP_FILE).unwrap());
 
-    let mut temp_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut temp_map: HashMap<String, Vec<&String>> = HashMap::new();
     for (language_name, language) in languages.iter() {
         if let Some(extensions) = &language.extensions {
             for extension in extensions.iter() {
                 let extension = extension.clone().to_ascii_lowercase();
                 match temp_map.get_mut(&extension) {
                     Some(entry) => {
-                        entry.push(language_name.clone());
+                        entry.push(language_name);
                     }
                     None => {
-                        temp_map.insert(extension.clone(), vec![language_name.clone()]);
+                        temp_map.insert(extension.clone(), vec![language_name]);
                     }
                 }
             }
@@ -311,7 +311,7 @@ fn create_extension_map(languages: &LanguageMap) {
 
     let mut extension_to_language_map = PhfMap::new();
     for (extension, languages) in temp_map.iter() {
-        extension_to_language_map.entry(&extension[..], format!("&{:?}", languages).as_str());
+        extension_to_language_map.entry(&extension[..], &format!("&{:?}", languages)[..]);
     }
 
     writeln!(
@@ -337,15 +337,15 @@ fn create_disambiguation_heuristics_map(heuristics: Heuristics) {
                 });
             }
             let extension = ext.clone().to_ascii_lowercase();
-            let key = format!("{}", extension);
-            let value = format!("{}", dis.to_domain_object_code(&heuristics.named_patterns));
+            let key = extension;
+            let value = dis.to_domain_object_code(&heuristics.named_patterns);
             temp_map.insert(key, value);
         }
     }
 
     let mut disambiguation_heuristic_map = PhfMap::new();
     for (key, value) in temp_map.iter() {
-        disambiguation_heuristic_map.entry(key.as_str(), value.as_str());
+        disambiguation_heuristic_map.entry(&key[..], &value[..]);
     }
 
     writeln!(
