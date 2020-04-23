@@ -55,7 +55,7 @@ println!("{:?}", breakdown.get("Rust"));
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
 |hyperpolyglot (multi-threaded) |1,188    |1,186      |1,166   |1,226   |
-|hyperpolyglot (single-threaded |2,424    |2,424      |2,414   |2,442   |
+|hyperpolyglot (single-threaded)|2,424    |2,424      |2,414   |2,442   |
 |enry                           |21,619   |21,566     |21,514  |21,855  |
 |Linguist                       |42,407   |42,386     |42,070  |42,856  |
 
