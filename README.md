@@ -70,6 +70,7 @@ println!("{:?}", breakdown.get("Rust"));
 **[Linux](https://github.com/torvalds/linux) Kernel**
 * The reason hyperpolyglot is so much faster here is the heuristic added to .h files which significantly speeds up detection for .h files that can't be classified with the Objective-C or C++ heuristics
 * Linguist was too slow to benchmark here
+
 |Tool                           |mean (s)|median (s)|min (s) |max (s) |
 |-------------------------------|---------|---------|------- |------- |
 |hyperpolyglot (multi-threaded) |3.7574   |3.7357   |3.7227  |3.9021  |
