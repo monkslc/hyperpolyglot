@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "hyperpolyglot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "ignore",
