@@ -51,7 +51,9 @@ fn main() {
         })
         .collect();
     language_count.sort_by(|(_, a), (_, b)| b.len().cmp(&a.len()));
-    print_language_split(&language_count);
+    if let Err(_) = print_language_split(&language_count) {
+        std::process::exit(1);
+    }
 
     let cli_options = CLIOptions {
         color: !matches.is_present("no-color"),
@@ -65,14 +67,14 @@ fn main() {
     };
 
     if matches.is_present("file-breakdown") {
-        println!("");
+        writeln!(io::stdout(), "").unwrap_or_else(|_| std::process::exit(1));
         if let Err(_) = print_file_breakdown(&language_count, &cli_options) {
             std::process::exit(1);
         }
     }
 
     if matches.is_present("strategy-breakdown") {
-        println!("");
+        writeln!(io::stdout(), "").unwrap_or_else(|_| std::process::exit(1));
         if let Err(_) = print_strategy_breakdown(&language_count, &cli_options) {
             std::process::exit(1);
         }
@@ -116,14 +118,18 @@ fn get_cli<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-fn print_language_split(language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>) {
+fn print_language_split(
+    language_counts: &Vec<(&'static str, Vec<(Detection, PathBuf)>)>,
+) -> Result<(), io::Error> {
     let total = language_counts
         .iter()
         .fold(0, |acc, (_, files)| acc + files.len()) as f64;
     for (language, files) in language_counts.iter() {
         let percentage = ((files.len() * 100) as f64) / total;
-        println!("{:.2}% {}", percentage, language);
+        writeln!(io::stdout(), "{:.2}% {}", percentage, language)?;
     }
+
+    Ok(())
 }
 
 fn print_file_breakdown(
