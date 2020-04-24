@@ -22,23 +22,8 @@ include!("codegen/language-info-map.rs");
 
 const MAX_CONTENT_SIZE_BYTES: usize = 51200;
 
-/// The language object that conatins the name and the type of language
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Language {
-    /// The name of the language
-    pub name: &'static str,
-    /// Type of language. ex/ Data, Programming, Markup, Prose
-    pub language_type: LanguageType,
-    /// The css hex color used to represent the language on github. ex/ #dea584
-    pub color: Option<&'static str>,
-    /// Name of the parent language. ex/ The group for TSX would be TypeScript
-    pub group: Option<&'static str>,
-}
-
-/// Returns the language that matches the name passed in
-///
-/// If the function is called with a language returned from `detect` or `get_language_breakdown`
-/// then the value can be unwrapped because it is guaranteed to be there
+/// The language struct that contains the name and other interesting information about a
+/// language.
 ///
 /// # Examples
 /// ```
@@ -56,7 +41,22 @@ pub struct Language {
 /// ```
 ///
 /// # Errors
-/// `try_from` will error if the langauge name is not recognized
+/// `try_from` will error if the langauge name is not one of the known languages
+///
+/// If try_from is called with a language returned from [`detect`] or [`get_language_breakdown`]
+/// the value is guaranteed to be there and can be unwrapped
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Language {
+    /// The name of the language
+    pub name: &'static str,
+    /// Type of language. ex/ Data, Programming, Markup, Prose
+    pub language_type: LanguageType,
+    /// The css hex color used to represent the language on github. ex/ #dea584
+    pub color: Option<&'static str>,
+    /// Name of the parent language. ex/ The group for TSX would be TypeScript
+    pub group: Option<&'static str>,
+}
+
 impl TryFrom<&str> for Language {
     type Error = &'static str;
     fn try_from(name: &str) -> Result<Self, Self::Error> {
@@ -214,8 +214,10 @@ fn truncate_to_char_boundary(s: &str, mut max: usize) -> &str {
 ///
 /// # Examples
 /// ```
-/// let breakdown = hyperpolyglot::get_language_breakdown("src/");
-/// println!("{:?}", breakdown.get("Rust"));
+/// use hyperpolyglot::get_language_breakdown;
+/// let breakdown = get_language_breakdown("src/");
+/// let total_detections = breakdown.iter().fold(0, |sum, (language, detections)| sum + detections.len());
+/// println!("Total files detected: {}", total_detections);
 /// ```
 pub fn get_language_breakdown<P: AsRef<Path>>(
     path: P,
