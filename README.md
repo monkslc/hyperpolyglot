@@ -52,6 +52,7 @@ println!("{:?}", breakdown.get("Rust"));
 * Both [enry](https://github.com/go-enry/go-enry) and [Linguist](https://github.com/github/linguist) are single-threaded
 
 **[samples](https://github.com/monkslc/hyperpolyglot/tree/master/samples) dir**
+
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
 |hyperpolyglot (multi-threaded) |1,188    |1,186      |1,166   |1,226   |
@@ -60,6 +61,7 @@ println!("{:?}", breakdown.get("Rust"));
 |Linguist                       |42,407   |42,386     |42,070  |42,856  |
 
 **[Rust](https://github.com/rust-lang/rust) Repo**
+
 |Tool                           |mean (ms)|median (ms)|min (ms)|max (ms)|
 |-------------------------------|---------|-----------|--------|--------|
 |hyperpolyglot (multi-threaded) |3,808    |3,751      |3,708   |4,253   |
