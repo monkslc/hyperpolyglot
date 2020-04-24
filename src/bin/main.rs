@@ -164,7 +164,7 @@ fn print_strategy_breakdown(
         }
     }
 
-    let mut strategy_breakdowns: Vec<(String, BinaryHeap<Reverse<(&&str, &PathBuf)>>)> =
+    let mut strategy_breakdowns: Vec<(&str, BinaryHeap<Reverse<(&&str, &PathBuf)>>)> =
         strategy_breakdown.into_iter().collect();
     strategy_breakdowns.sort_by(|(_, a), (_, b)| b.len().cmp(&a.len()));
 

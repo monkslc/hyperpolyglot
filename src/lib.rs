@@ -111,13 +111,13 @@ impl Detection {
     }
 
     /// Returns the strategy used to detect the langauge
-    pub fn variant(&self) -> String {
+    pub fn variant(&self) -> &str {
         match self {
-            Detection::Filename(_) => String::from("Filename"),
-            Detection::Extension(_) => String::from("Extension"),
-            Detection::Shebang(_) => String::from("Shebang"),
-            Detection::Heuristics(_) => String::from("Heuristics"),
-            Detection::Classifier(_) => String::from("Classifier"),
+            Detection::Filename(_) => "Filename",
+            Detection::Extension(_) => "Extension",
+            Detection::Shebang(_) => "Shebang",
+            Detection::Heuristics(_) => "Heuristics",
+            Detection::Classifier(_) => "Classifier",
         }
     }
 }
