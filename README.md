@@ -9,6 +9,12 @@ Hyperpolyglot is a fast programming language detector written in Rust based on G
 **Usage**
 `hyply [PATH]`
 
+**Output**
+```
+85.00% Rust
+15.00% RenderScript
+```
+
 ### Library
 **Adding as a dependency**
 ```TOML
