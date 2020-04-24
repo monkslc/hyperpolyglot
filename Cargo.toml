@@ -9,6 +9,7 @@ homepage = "https://github.com/monkslc/hyperpolyglot"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/monkslc/hyperpolyglot"
+exclude = ["samples/", "vendor.yml", "heuristics.yml", "documentation.yml", "languages.yml"]
 
 [dependencies]
 clap = "2.33.0"
