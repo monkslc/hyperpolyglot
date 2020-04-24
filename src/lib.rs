@@ -5,9 +5,7 @@ use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use std::{
     collections::HashMap,
     convert::TryFrom,
-    env,
-    error::Error,
-    fmt,
+    env, fmt,
     fs::File,
     io::{BufReader, Read, Seek, SeekFrom},
     path::{Path, PathBuf},
@@ -139,7 +137,7 @@ impl Detection {
 /// let language = detect(path).unwrap().unwrap();
 /// assert_eq!(Detection::Heuristics("Rust"), language);
 /// ```
-pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
+pub fn detect(path: &Path) -> Result<Option<Detection>, std::io::Error> {
     let filename = path.file_name().and_then(|filename| filename.to_str());
 
     let candidate = filename.and_then(|filename| detectors::get_language_from_filename(filename));
@@ -193,7 +191,7 @@ pub fn detect(path: &Path) -> Result<Option<Detection>, Box<dyn Error>> {
         _ => Ok(Some(Detection::Classifier(detectors::classify(
             &content,
             &candidates,
-        )?))),
+        )))),
     }
 }
 
