@@ -240,9 +240,11 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
         Box::new(move |result| {
             use ignore::WalkState::*;
 
-            let path = result.unwrap().into_path();
-            if let Ok(Some(detection)) = detect(&path) {
-                tx.send((detection, path)).unwrap();
+            if let Ok(path) = result {
+                let path = path.into_path();
+                if let Ok(Some(detection)) = detect(&path) {
+                    tx.send((detection, path)).unwrap();
+                }
             }
             Continue
         })
