@@ -39,8 +39,6 @@ println!("{:?}", breakdown.get("Rust"));
 ```
 
 ### Divergences from Linguist
-* Less meticulous tokenization. Hyperpolyglot currently doesn't filter out comments and string literals.
-
 * The probability of the language occuring is not taken into account when classifying. All languages are assumed to have equal probability.
 
 * An additional heuristic was added for .h files.
