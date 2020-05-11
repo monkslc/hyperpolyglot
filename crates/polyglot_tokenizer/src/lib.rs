@@ -121,7 +121,7 @@ fn parse_hex_number<'a>(lex: &mut Lexer<'a, Token<'a>>) -> f64 {
 }
 
 #[derive(Logos, Debug, PartialEq)]
-enum Token<'a> {
+pub enum Token<'a> {
     #[regex("[A-Za-z0-9_]+", |lex| lex.slice())]
     Ident(&'a str),
 
@@ -155,7 +155,16 @@ enum Token<'a> {
     Error,
 }
 
-pub fn tokenize(content: &str) -> impl Iterator<Item = &str> {
+/// Tokenize the content and return only the identifiers and symbols from the langauge
+///
+/// # Examples
+/// ```
+/// use polyglot_tokenizer;
+/// let content = r#"let x = [5, "hello"];"#;
+/// let tokens: Vec<&str> = polyglot_tokenizer::get_key_tokens(content).collect();
+/// assert_eq!(tokens, vec!["let", "x", "=", "[", ",", "]", ";"]);
+/// ```
+pub fn get_key_tokens(content: &str) -> impl Iterator<Item = &str> {
     let iter = Token::lexer(content);
     iter.filter_map(|t| match t {
         Token::Ident(t) | Token::Symbol(t) => Some(t),
@@ -368,11 +377,5 @@ mod tests {
             Symbol(";"),
         ];
         assert_eq!(tokens, expected);
-    }
-
-    #[test]
-    fn test_empty_tokenizer_string() {
-        let tokens: Vec<&str> = tokenize("").collect();
-        assert_eq!(tokens.len(), 0);
     }
 }

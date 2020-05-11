@@ -25,7 +25,7 @@ pub fn classify(content: &str, candidates: &Vec<&'static str>) -> &'static str {
         .iter()
         .map(|language| {
             let score = match TOKEN_LOG_PROBABILITIES.get(language) {
-                Some(token_map) => tokenizer::tokenize(content)
+                Some(token_map) => polyglot_tokenizer::get_key_tokens(content)
                     .filter(|token| token.len() <= MAX_TOKEN_BYTES)
                     .fold(0f64, |sum, token| {
                         let token_log_prob = token_map.get(token).unwrap_or(&DEFAULT_LOG_PROB);

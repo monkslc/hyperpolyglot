@@ -386,7 +386,8 @@ fn train_classifier() {
             // When tokenizing an invalid utf8 string, just set it to ""
             // Add better error handling here in the future but unure of the best
             // way to handle it now
-            let tokens = tokenizer::tokenize(std::str::from_utf8(&content[..]).unwrap_or(""));
+            let tokens =
+                polyglot_tokenizer::get_key_tokens(std::str::from_utf8(&content[..]).unwrap_or(""));
 
             for token in tokens {
                 if token.len() <= MAX_TOKEN_BYTES {

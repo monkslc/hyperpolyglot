@@ -160,11 +160,11 @@ dependencies = [
  "pcre2",
  "phf",
  "phf_codegen",
+ "polyglot_tokenizer",
  "regex",
  "serde",
  "serde_yaml",
  "termcolor",
- "tokenizer",
 ]
 
 [[package]]
@@ -325,6 +325,13 @@ name = "pkg-config"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05da548ad6865900e60eaba7f589cc0783590a92e940c26953ff81ddbab2d677"
+
+[[package]]
+name = "polyglot_tokenizer"
+version = "0.1.0"
+dependencies = [
+ "logos",
+]
 
 [[package]]
 name = "ppv-lite86"
@@ -508,13 +515,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "tokenizer"
-version = "0.1.0"
-dependencies = [
- "logos",
 ]
 
 [[package]]
