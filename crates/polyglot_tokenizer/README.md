@@ -1,6 +1,6 @@
 # Polyglot Tokenizer
 ### A generic programming language tokenizer
-Polyglot tokenizer turns code into tokens, labelling each token as an Identifier, LineComment, BlockComment, Symbol, StringLiteral, or Number.
+Polyglot Tokenizer turns code into tokens, labelling each token as an Identifier, LineComment, BlockComment, Symbol, StringLiteral, or Number.
 
 ## License
 
