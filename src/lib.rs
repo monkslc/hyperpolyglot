@@ -14,7 +14,6 @@ use std::{
 
 mod detectors;
 mod filters;
-pub mod tokenizer;
 
 // Include the map that stores language info
 // static LANGUAGE_INFO: phf::Map<&'static str, Language> = ...;

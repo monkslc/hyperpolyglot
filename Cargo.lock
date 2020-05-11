@@ -156,7 +156,6 @@ dependencies = [
  "clap",
  "ignore",
  "lazy_static",
- "logos",
  "num_cpus",
  "pcre2",
  "phf",
@@ -165,6 +164,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "termcolor",
+ "tokenizer",
 ]
 
 [[package]]
@@ -215,18 +215,18 @@ dependencies = [
 
 [[package]]
 name = "logos"
-version = "0.11.0"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42718f9e929c97a875b305f7bd411f7dfc5777ee4a9904aa9c765f25701b7c4c"
+checksum = "b91c49573597a5d6c094f9031617bb1fed15c0db68c81e6546d313414ce107e4"
 dependencies = [
  "logos-derive",
 ]
 
 [[package]]
 name = "logos-derive"
-version = "0.11.0"
+version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93ea1beb72d3e0928e729e8795186b9a4ed607a72765bcf8093800ef7c0d5fc0"
+checksum = "797b1f8a0571b331c1b47e7db245af3dc634838da7a92b3bef4e30376ae1c347"
 dependencies = [
  "beef",
  "fnv",
@@ -508,6 +508,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "tokenizer"
+version = "0.1.0"
+dependencies = [
+ "logos",
 ]
 
 [[package]]

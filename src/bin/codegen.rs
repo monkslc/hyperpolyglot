@@ -8,8 +8,6 @@ use std::{
     iter,
 };
 
-use hyperpolyglot::tokenizer;
-
 type LanguageMap = HashMap<String, LanguageDTO>;
 type NamedPatterns = HashMap<String, MaybeMany<String>>;
 

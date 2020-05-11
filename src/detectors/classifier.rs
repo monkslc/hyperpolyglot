@@ -1,5 +1,3 @@
-use crate::tokenizer;
-
 // Include the map that contains the token log probabilities
 // static TOKEN_LOG_PROBABILITIES: phf::Map<&'static str, f64> = ...;
 include!("../codegen/token-log-probabilities.rs");
