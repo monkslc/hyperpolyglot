@@ -361,6 +361,7 @@ mod tests {
             _
             0xFFFFFFFFFFFFFFFFF;
             1000f64;
+            (1);
         "#;
 
         let tokens: Vec<Token> = Token::lexer(sample).collect();
@@ -387,6 +388,10 @@ mod tests {
             Number(0.0),
             Symbol(";"),
             Ident("1000f64"),
+            Symbol(";"),
+            Symbol("("),
+            Number(1.0),
+            Symbol(")"),
             Symbol(";"),
         ];
         assert_eq!(tokens, expected);
