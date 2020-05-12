@@ -378,4 +378,18 @@ mod tests {
         ];
         assert_eq!(tokens, expected);
     }
+
+    #[test]
+    fn test_edge_cases() {
+        let sample = r#"
+            /* "Hello" */
+            " /*Hello*/ "
+            "#;
+        let tokens: Vec<Token> = Token::lexer(sample).collect();
+        let expected = vec![
+            BlockComment(r#"/* "Hello" */"#),
+            StringLiteral(" /*Hello*/ "),
+        ];
+        assert_eq!(tokens, expected);
+    }
 }
