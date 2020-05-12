@@ -158,6 +158,20 @@ pub enum Token<'a> {
     Error,
 }
 
+impl<'a> Token<'a> {
+    pub fn variant(&self) -> &'static str {
+        match self {
+            Token::Ident(_) => "ident",
+            Token::Symbol(_) => "symbol",
+            Token::LineComment(_) => "line-comment",
+            Token::BlockComment(_) => "block-comment",
+            Token::StringLiteral(_) => "string",
+            Token::Number(_) => "number",
+            Token::Error => "error",
+        }
+    }
+}
+
 /// Tokenize the content and return only the identifiers and symbols from the langauge
 ///
 /// # Examples

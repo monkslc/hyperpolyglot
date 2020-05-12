@@ -12,6 +12,7 @@ repository = "https://github.com/monkslc/hyperpolyglot"
 exclude = ["samples/", "vendor.yml", "heuristics.yml", "documentation.yml", "languages.yml"]
 
 [workspace]
+members = ["crates/py_polyglot_tokenizer"]
 
 [dependencies]
 clap = "2.33.0"

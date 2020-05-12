@@ -1,0 +1,13 @@
+[package]
+name = "py_polyglot_tokenizer"
+version = "0.1.0"
+authors = ["Connor Monks <monkslc@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "py_polyglot_tokenizer"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = {version = "0.9.2", features = ["extension-module"] }
+polyglot_tokenizer = { path="../polyglot_tokenizer" }
