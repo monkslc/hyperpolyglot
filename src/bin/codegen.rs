@@ -413,7 +413,7 @@ fn train_classifier() {
         for (token, token_count) in token_count_map.iter() {
             let probability = (*token_count as f64) / (total_tokens);
             let log_probability = probability.ln();
-            token_log_probabilities.entry(&token[..], &format!("{}", log_probability)[..]);
+            token_log_probabilities.entry(&token[..], &format!("{}f64", log_probability)[..]);
         }
         let codegen_log_prob_map = format!("{}", token_log_probabilities.build());
         language_token_log_probabilities.entry(&language[..], &codegen_log_prob_map[..]);

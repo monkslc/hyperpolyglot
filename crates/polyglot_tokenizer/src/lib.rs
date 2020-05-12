@@ -125,7 +125,13 @@ pub enum Token<'a> {
     #[regex("[A-Za-z0-9_]+", |lex| lex.slice())]
     Ident(&'a str),
 
+    #[regex("[^A-Za-z0-9_\\s]", |lex| lex.slice())]
+    Symbol(&'a str),
+
     #[regex("//.*", |lex| lex.slice())]
+    #[regex("#.*", |lex| lex.slice())]
+    #[regex("--.*", |lex| lex.slice())]
+    #[regex("%.*", |lex| lex.slice())]
     LineComment(&'a str),
 
     #[token("/*", |lex| maybe_block_token(lex, vec!['*', '/']))]
@@ -133,9 +139,6 @@ pub enum Token<'a> {
     #[token("(*", |lex| maybe_block_token(lex, vec!['*', ')']))]
     #[token("<!--", |lex| maybe_block_token(lex, vec!['-', '-', '>']))]
     BlockComment(&'a str),
-
-    #[regex("[^A-Za-z0-9_\\s]", |lex| lex.slice())]
-    Symbol(&'a str),
 
     // Using char::from to avoid syntax highlighting issues from having an unterminated double quote
     #[regex("\"", |lex| maybe_line_token(lex, char::from(34)))]
@@ -170,6 +173,10 @@ pub fn get_key_tokens(content: &str) -> impl Iterator<Item = &str> {
         Token::Ident(t) | Token::Symbol(t) => Some(t),
         _ => None,
     })
+}
+
+pub fn tokenize(content: &str) -> impl Iterator<Item = Token> {
+    Token::lexer(content)
 }
 
 #[cfg(test)]
@@ -265,6 +272,9 @@ mod tests {
         // This is a line comment
         let x
         /// this is also a // line comment
+        # python line comment
+        -- lua comment
+        % MATLAB comment
         "#;
 
         let tokens: Vec<Token> = Token::lexer(sample).collect();
@@ -273,6 +283,9 @@ mod tests {
             Ident("let"),
             Ident("x"),
             LineComment("/// this is also a // line comment"),
+            LineComment("# python line comment"),
+            LineComment("-- lua comment"),
+            LineComment("% MATLAB comment"),
         ];
         assert_eq!(tokens, expected);
     }
@@ -388,7 +401,7 @@ mod tests {
         let tokens: Vec<Token> = Token::lexer(sample).collect();
         let expected = vec![
             BlockComment(r#"/* "Hello" */"#),
-            StringLiteral(" /*Hello*/ "),
+            StringLiteral("\" /*Hello*/ \""),
         ];
         assert_eq!(tokens, expected);
     }
