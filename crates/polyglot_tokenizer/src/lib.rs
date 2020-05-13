@@ -78,48 +78,6 @@ fn maybe_block_token<'a>(lex: &mut Lexer<'a, Token<'a>>, end_seq: Vec<char>) -> 
     &lex.source()[start..end + end_of_seq_byte_index]
 }
 
-fn parse_number<'a>(lex: &mut Lexer<'a, Token<'a>>) -> f64 {
-    let sanitized_string: String = lex.slice().chars().filter(|ch| *ch != '_').collect();
-    // overflow can cause this to fail, just set it to 0 in this case
-    sanitized_string.parse().unwrap_or(0.0)
-}
-
-fn parse_binary_number<'a>(lex: &mut Lexer<'a, Token<'a>>) -> f64 {
-    let sanitized_string: String = lex
-        .slice()
-        .replace("0b", "")
-        .chars()
-        .filter(|ch| *ch != '_')
-        .collect();
-    // overflow can cause this to fail, just set it to 0 in this case
-    let int: isize = isize::from_str_radix(&sanitized_string[..], 2).unwrap_or(0);
-    int as f64
-}
-
-fn parse_octal_number<'a>(lex: &mut Lexer<'a, Token<'a>>) -> f64 {
-    let sanitized_string: String = lex
-        .slice()
-        .replace("0o", "")
-        .chars()
-        .filter(|ch| *ch != '_')
-        .collect();
-    // overflow can cause this to fail, just set it to 0 in this case
-    let int: isize = isize::from_str_radix(&sanitized_string[..], 8).unwrap_or(0);
-    int as f64
-}
-
-fn parse_hex_number<'a>(lex: &mut Lexer<'a, Token<'a>>) -> f64 {
-    let sanitized_string: String = lex
-        .slice()
-        .replace("0x", "")
-        .chars()
-        .filter(|ch| *ch != '_')
-        .collect();
-    // overflow can cause this to fail, just set it to 0 in this case
-    let int: isize = isize::from_str_radix(&sanitized_string[..], 16).unwrap_or(0);
-    int as f64
-}
-
 #[derive(Logos, Debug, PartialEq)]
 pub enum Token<'a> {
     #[regex("[A-Za-z0-9_]+", |lex| lex.slice())]
@@ -147,11 +105,11 @@ pub enum Token<'a> {
     #[regex("\'", |lex| maybe_line_token(lex, '\''))]
     StringLiteral(&'a str),
 
-    #[regex(r"[-+]?(?:[0-9][0-9_]*)?\.?([0-9][0-9_]*)", priority = 2, callback = parse_number)]
-    #[regex(r"[-+]?0b[0-1_]+", priority = 2, callback = parse_binary_number)]
-    #[regex(r"[-+]?0o[0-7_]+", priority = 2, callback = parse_octal_number)]
-    #[regex(r"[-+]?0x[0-9A-Fa-f_]+", priority = 2, callback = parse_hex_number)]
-    Number(f64),
+    #[regex(r"[-+]?(?:[0-9][0-9_]*)?\.?([0-9][0-9_]*)", priority = 2, callback = |lex| lex.slice())]
+    #[regex(r"[-+]?0b[0-1_]+", priority = 2, callback = |lex| lex.slice())]
+    #[regex(r"[-+]?0o[0-7_]+", priority = 2, callback = |lex| lex.slice())]
+    #[regex(r"[-+]?0x[0-9A-Fa-f_]+", priority = 2, callback = |lex| lex.slice())]
+    Number(&'a str),
 
     #[error]
     #[regex(r"[ \t\n\f]+", logos::skip)]
@@ -203,7 +161,7 @@ mod tests {
             Ident("let"),
             Ident("x_x"),
             Symbol("="),
-            Number(5.0),
+            Number("5"),
             Symbol(";"),
             Ident("println"),
             Symbol("!"),
@@ -368,29 +326,29 @@ mod tests {
         let expected = vec![
             Ident("x"),
             Symbol("="),
-            Number(1000f64),
+            Number("1000"),
             Symbol(";"),
-            Number(100_000f64),
+            Number("100_000"),
             Symbol(";"),
-            Number(-1f64),
+            Number("-1"),
             Symbol(";"),
-            Number(-1.5),
+            Number("-1.5"),
             Symbol(";"),
-            Number(1.5),
+            Number("+1.5"),
             Symbol(";"),
-            Number(-8.0),
+            Number("-0b01_000"),
             Symbol(";"),
-            Number(-448.0),
+            Number("-0o700"),
             Symbol(";"),
-            Number(-3999.0),
+            Number("-0xF9f"),
             Symbol(";"),
             Ident("_"),
-            Number(0.0),
+            Number("0xFFFFFFFFFFFFFFFFF"),
             Symbol(";"),
             Ident("1000f64"),
             Symbol(";"),
             Symbol("("),
-            Number(1.0),
+            Number("1"),
             Symbol(")"),
             Symbol(";"),
         ];
