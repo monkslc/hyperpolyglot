@@ -14,7 +14,7 @@ pub fn get_languages_from_extension(extension: &str) -> Vec<&'static str> {
 }
 
 pub fn get_extension(filename: &str) -> Option<&'static str> {
-    let filename = if filename.starts_with(".") {
+    let filename = if filename.starts_with('.') {
         &filename[1..]
     } else {
         filename

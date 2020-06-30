@@ -59,10 +59,7 @@ pub struct Language {
 impl TryFrom<&str> for Language {
     type Error = &'static str;
     fn try_from(name: &str) -> Result<Self, Self::Error> {
-        LANGUAGE_INFO
-            .get(name)
-            .map(|l| *l)
-            .ok_or("Language not found")
+        LANGUAGE_INFO.get(name).copied().ok_or("Language not found")
     }
 }
 
@@ -148,7 +145,7 @@ pub fn detect(path: &Path) -> Result<Option<Detection>, std::io::Error> {
 
     let candidates = extension
         .map(|ext| detectors::get_languages_from_extension(ext))
-        .unwrap_or(vec![]);
+        .unwrap_or_else(Vec::new);
 
     if candidates.len() == 1 {
         return Ok(Some(Detection::Extension(candidates[0])));
@@ -228,7 +225,7 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
     let num_threads = env::var_os("HYPLY_THREADS")
         .and_then(|threads| threads.into_string().ok())
         .and_then(|threads| threads.parse().ok())
-        .unwrap_or(num_cpus::get());
+        .unwrap_or_else(num_cpus::get);
 
     let (tx, rx) = mpsc::channel::<(Detection, PathBuf)>();
     let walker = WalkBuilder::new(path)
@@ -255,7 +252,7 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
     for (detection, file) in rx {
         let files = language_breakdown
             .entry(detection.language())
-            .or_insert(vec![]);
+            .or_insert_with(Vec::new);
         files.push((detection, file));
     }
 
@@ -266,18 +263,18 @@ fn filter_candidates(
     previous_candidates: Vec<&'static str>,
     new_candidates: Vec<&'static str>,
 ) -> Vec<&'static str> {
-    if previous_candidates.len() == 0 {
+    if previous_candidates.is_empty() {
         return new_candidates;
     }
 
-    if new_candidates.len() == 0 {
+    if new_candidates.is_empty() {
         return previous_candidates;
     }
 
     let filtered_candidates: Vec<&'static str> = previous_candidates
         .iter()
         .filter(|l| new_candidates.contains(l))
-        .map(|l| *l)
+        .copied()
         .collect();
 
     match filtered_candidates.len() {

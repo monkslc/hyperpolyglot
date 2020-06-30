@@ -15,7 +15,7 @@ pub struct LanguageScore {
     score: f64,
 }
 
-pub fn classify(content: &str, candidates: &Vec<&'static str>) -> &'static str {
+pub fn classify(content: &str, candidates: &[&'static str]) -> &'static str {
     let candidates = match candidates.len() {
         0 => LANGUAGES,
         _ => candidates,
@@ -33,10 +33,7 @@ pub fn classify(content: &str, candidates: &Vec<&'static str>) -> &'static str {
                     }),
                 None => std::f64::NEG_INFINITY,
             };
-            LanguageScore {
-                language: language,
-                score,
-            }
+            LanguageScore { language, score }
         })
         .collect();
 

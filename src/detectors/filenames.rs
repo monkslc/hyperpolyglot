@@ -3,7 +3,7 @@
 include!("../codegen/filename-language-map.rs");
 
 pub fn get_language_from_filename(filename: &str) -> Option<&'static str> {
-    FILENAMES.get(filename).map(|filename| *filename)
+    FILENAMES.get(filename).copied()
 }
 
 #[cfg(test)]

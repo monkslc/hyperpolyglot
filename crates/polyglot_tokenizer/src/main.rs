@@ -4,7 +4,7 @@ use std::{
     io::{ErrorKind, Read},
 };
 
-use polyglot_tokenizer::tokenize;
+use polyglot_tokenizer::Tokenizer;
 
 fn main() {
     if let Some(file_name) = env::args().skip(1).next() {
@@ -12,7 +12,7 @@ fn main() {
             Ok(mut file) => {
                 let mut content = String::new();
                 match file.read_to_string(&mut content) {
-                    Ok(_) => tokenize(&content[..]).for_each(|token| {
+                    Ok(_) => Tokenizer::new(&content[..]).tokens().for_each(|token| {
                         println!("{:?}", token);
                     }),
                     Err(e) => println!("Error reading file: {}", e),

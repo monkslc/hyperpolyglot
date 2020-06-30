@@ -20,7 +20,7 @@ pub fn get_languages_from_shebang<R: std::io::BufRead>(
     }
 
     let languages = shebang_line
-        .split("/")
+        .split('/')
         .last()
         .and_then(|interpreter_line| {
             let mut splits = interpreter_line.split_whitespace();

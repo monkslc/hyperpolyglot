@@ -45,7 +45,7 @@ impl Pattern {
 
 pub fn get_languages_from_heuristics(
     extension: &str,
-    candidates: &Vec<&'static str>,
+    candidates: &[&'static str],
     content: &str,
 ) -> Vec<&'static str> {
     match DISAMBIGUATIONS.get(extension) {
