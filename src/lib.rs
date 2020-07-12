@@ -83,7 +83,7 @@ impl fmt::Display for LanguageType {
     }
 }
 
-/// An enum where the variant is the streategy that detected the language and the value is the name
+/// An enum where the variant is the strategy that detected the language and the value is the name
 /// of the language
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Detection {

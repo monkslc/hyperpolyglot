@@ -21,16 +21,18 @@ pub fn classify(content: &str, candidates: &[&'static str]) -> &'static str {
         _ => candidates,
     };
 
+    let tokens: Vec<_> = polyglot_tokenizer::get_key_tokens(content)
+        .filter(|token| token.len() <= MAX_TOKEN_BYTES)
+        .collect();
+
     let mut scored_candidates: Vec<LanguageScore> = candidates
         .iter()
         .map(|language| {
             let score = match TOKEN_LOG_PROBABILITIES.get(language) {
-                Some(token_map) => polyglot_tokenizer::get_key_tokens(content)
-                    .filter(|token| token.len() <= MAX_TOKEN_BYTES)
-                    .fold(0f64, |sum, token| {
-                        let token_log_prob = token_map.get(token).unwrap_or(&DEFAULT_LOG_PROB);
-                        sum + token_log_prob
-                    }),
+                Some(token_map) => tokens.iter().fold(0f64, |sum, token| {
+                    let token_log_prob = token_map.get(*token).unwrap_or(&DEFAULT_LOG_PROB);
+                    sum + token_log_prob
+                }),
                 None => std::f64::NEG_INFINITY,
             };
             LanguageScore { language, score }
