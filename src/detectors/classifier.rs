@@ -29,10 +29,10 @@ pub fn classify(content: &str, candidates: &[&'static str]) -> &'static str {
         .iter()
         .map(|language| {
             let score = match TOKEN_LOG_PROBABILITIES.get(language) {
-                Some(token_map) => tokens.iter().fold(0f64, |sum, token| {
-                    let token_log_prob = token_map.get(*token).unwrap_or(&DEFAULT_LOG_PROB);
-                    sum + token_log_prob
-                }),
+                Some(token_map) => tokens
+                    .iter()
+                    .map(|token| token_map.get(*token).copied().unwrap_or(DEFAULT_LOG_PROB))
+                    .sum(),
                 None => std::f64::NEG_INFINITY,
             };
             LanguageScore { language, score }
