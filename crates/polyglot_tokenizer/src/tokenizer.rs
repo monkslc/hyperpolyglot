@@ -1,6 +1,10 @@
-use std::{collections::VecDeque, iter::Peekable, str::CharIndices};
+use std::{
+    collections::VecDeque,
+    iter::{DoubleEndedIterator, Peekable},
+    str::CharIndices,
+};
 
-/// Token is an emun whose variants represent each type of possible Token returned from the
+/// Token is an enum whose variants represent each type of possible Token returned from the
 /// [`Tokenizer`]. Block Comments and Strings hold both the start and end indicator for the Tokens.
 /// Line Comments hold the open indicator for the Tokens. See below for examples.
 ///
@@ -132,7 +136,7 @@ impl<'a> Tokens<'a> {
 
     fn push_backlog<I>(&mut self, new_chars: I)
     where
-        I: Iterator<Item = (usize, char)> + std::iter::DoubleEndedIterator, //TODO: better import
+        I: Iterator<Item = (usize, char)> + DoubleEndedIterator,
     {
         for ch in new_chars.rev() {
             self.backlog.push_front(ch)
@@ -356,13 +360,13 @@ impl<'a> Iterator for Tokens<'a> {
             Some(quote_char @ '"') | Some(quote_char @ '\'') | Some(quote_char @ '`') => {
                 let symbol = self.take_if_slice(&mut |ch| ch == quote_char);
                 match symbol.len() {
+                    // If there were only one string identifier, assuume a single line string
+                    // This is incorrect for the backtick in JavaScript
                     1 => {
-                        // Random character that won't match the initial closure check
-                        let mut prev_char = '@';
+                        let mut is_escaped = false;
                         let mut string_closure = |ch: char| {
-                            let should_take =
-                                !((ch == quote_char && prev_char != '\\') || ch == '\n');
-                            prev_char = ch;
+                            let should_take = !((ch == quote_char && !is_escaped) || ch == '\n');
+                            is_escaped = ch == '\\' && !is_escaped;
                             should_take
                         };
                         let string_end = self.take_if(&mut string_closure);
@@ -387,11 +391,14 @@ impl<'a> Iterator for Tokens<'a> {
                             }
                         }
                     }
+                    // Empty String
                     2 => Some(Token::String(
                         self.slice_from_token_start(self.token_start() + 1),
                         "",
                         self.slice(self.token_start() + 1, self.token_start() + 2),
                     )),
+                    // If there were more than two quote identifiers, assume a mutli line string,
+                    // that ends with the same number of identifiers
                     _ => {
                         let string_indicator = vec![quote_char; symbol.len()];
                         match self.take_block(
@@ -760,21 +767,6 @@ mod tests {
         assert_eq!(tokens, expected);
     }
 
-    // Ignoring because functionality isn't quite right yet
-    #[test]
-    #[ignore]
-    fn block_comment_padded_symbols() {
-        let sample = r#"
-        /*** also a comment ***/
-        "#;
-
-        let tokenizer = Tokenizer::new(sample);
-        let tokens: Vec<Token> = tokenizer.tokens().collect();
-        let expected = vec![BlockComment("/***", "also a comment", "***/")];
-
-        assert_eq!(tokens, expected);
-    }
-
     #[test]
     fn unterminated_block_comment() {
         let sample = r#"
@@ -821,6 +813,27 @@ mod tests {
             Number("5"),
         ];
 
+        assert_eq!(tokens, expected);
+    }
+
+    #[test]
+    fn test_escaped_string() {
+        let sample = r#"
+          "Hello \"World"
+          "Hello World\\"
+          "Hello World\" x
+        "#;
+        let tokens: Vec<_> = Tokenizer::new(sample).tokens().collect();
+        let expected = vec![
+            String("\"", "Hello \\\"World", "\""),
+            String("\"", "Hello World\\\\", "\""),
+            Symbol("\""),
+            Ident("Hello"),
+            Ident("World"),
+            Symbol("\\"),
+            Symbol("\""),
+            Ident("x"),
+        ];
         assert_eq!(tokens, expected);
     }
 }
