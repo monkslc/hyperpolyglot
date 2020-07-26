@@ -175,7 +175,7 @@ dependencies = [
 
 [[package]]
 name = "hyperpolyglot"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "clap",
  "ignore",
@@ -443,7 +443,7 @@ checksum = "05da548ad6865900e60eaba7f589cc0783590a92e940c26953ff81ddbab2d677"
 
 [[package]]
 name = "polyglot_tokenizer"
-version = "0.2.0"
+version = "0.2.1"
 
 [[package]]
 name = "ppv-lite86"
