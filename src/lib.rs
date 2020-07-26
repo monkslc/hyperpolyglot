@@ -134,7 +134,10 @@ impl Detection {
 /// assert_eq!(Detection::Heuristics("Rust"), language);
 /// ```
 pub fn detect(path: &Path) -> Result<Option<Detection>, std::io::Error> {
-    let filename = path.file_name().and_then(|filename| filename.to_str());
+    let filename = match path.file_name() {
+        Some(filename) => filename.to_str(),
+        None => return Ok(None),
+    };
 
     let candidate = filename.and_then(|filename| detectors::get_language_from_filename(filename));
     if let Some(candidate) = candidate {
@@ -239,8 +242,10 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
 
             if let Ok(path) = result {
                 let path = path.into_path();
-                if let Ok(Some(detection)) = detect(&path) {
-                    tx.send((detection, path)).unwrap();
+                if !path.is_dir() {
+                    if let Ok(Some(detection)) = detect(&path) {
+                        tx.send((detection, path)).unwrap();
+                    }
                 }
             }
             Continue
