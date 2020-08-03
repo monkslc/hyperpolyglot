@@ -83,7 +83,7 @@ fn main() {
 
 fn get_cli<'a, 'b>() -> App<'a, 'b> {
     App::new("Hyperpolyglot")
-        .version("0.1.0")
+        .version("0.1.7")
         .about("Hyperpolyglot is a programming language detector. It supports detecting the programming language of a file or the programming language makeup of a directory.")
         .arg(Arg::with_name("PATH").index(1).default_value("."))
         .arg(
