@@ -235,6 +235,7 @@ pub fn get_language_breakdown<P: AsRef<Path>>(
         .threads(num_threads)
         .overrides(override_builder.build().unwrap())
         .build_parallel();
+
     walker.run(|| {
         let tx = tx.clone();
         Box::new(move |result| {

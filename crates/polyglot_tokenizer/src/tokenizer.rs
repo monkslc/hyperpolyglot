@@ -1,3 +1,4 @@
+use circular_queue::CircularQueue;
 use std::{
     collections::VecDeque,
     iter::{DoubleEndedIterator, Peekable},
@@ -70,37 +71,6 @@ impl<'a> Tokenizer<'a> {
             content: self.content,
             current_token_idx: 0,
         }
-    }
-}
-
-struct Cycle<T: Copy> {
-    items: Vec<T>,
-    index: usize,
-}
-
-impl<T: Copy> Cycle<T> {
-    fn new(starting_items: Vec<T>) -> Self {
-        Cycle {
-            items: starting_items,
-            index: 0,
-        }
-    }
-
-    fn push(&mut self, item: T) {
-        self.items[self.index] = item;
-        self.bump_index();
-    }
-
-    fn bump_index(&mut self) {
-        self.index = (self.index + 1) % self.items.len();
-    }
-
-    fn get_items(&self) -> Vec<T> {
-        let mut items = Vec::with_capacity(self.items.len());
-        for i in 0..self.items.len() {
-            items.push(self.items[(i + self.index) % self.items.len()])
-        }
-        items
     }
 }
 
@@ -242,9 +212,9 @@ impl<'a> Tokens<'a> {
         end_sequence: &Vec<char>,
     ) -> Result<(&'a str, &'a str), Token<'a>> {
         // start with a random char '@' that won't match the closure check
-        let mut prev_chars = Cycle::new(vec!['@'; end_sequence.len()]);
+        let mut prev_chars = CircularQueue::with_capacity(end_sequence.len());
         let mut take_if = |ch| {
-            let should_take = prev_chars.get_items() != *end_sequence;
+            let should_take = prev_chars.iter().eq(end_sequence.iter());
             if should_take {
                 prev_chars.push(ch);
             }
@@ -252,7 +222,7 @@ impl<'a> Tokens<'a> {
         };
 
         let end = self.take_if(&mut take_if);
-        if prev_chars.get_items() == *end_sequence {
+        if prev_chars.iter().eq(end_sequence.iter()) {
             let end_sequence_start = end - end_sequence.len();
             let content = self.slice(content_idx, end_sequence_start);
             let end_sequence = self.slice(end_sequence_start, end);

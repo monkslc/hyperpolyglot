@@ -11,6 +11,7 @@ readme = "README.md"
 repository = "https://github.com/monkslc/hyperpolyglot/tree/master/crates/polyglot_tokenizer"
 
 [dependencies]
+circular-queue = "0.2.6"
 
 [[bin]]
 name = "plytok"
