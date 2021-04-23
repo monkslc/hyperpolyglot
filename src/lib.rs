@@ -48,6 +48,8 @@ const MAX_CONTENT_SIZE_BYTES: usize = 51200;
 pub struct Language {
     /// The name of the language
     pub name: &'static str,
+    /// The primary extension associated with the language
+    pub ext: Option<&'static str>,
     /// Type of language. ex/ Data, Programming, Markup, Prose
     pub language_type: LanguageType,
     /// The css hex color used to represent the language on github. ex/ #dea584

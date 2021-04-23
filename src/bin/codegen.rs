@@ -25,8 +25,12 @@ struct LanguageDTO {
 impl LanguageDTO {
     fn to_domain_object_code(&self, name: &str) -> String {
         format!(
-            "Language {{ name: \"{}\", language_type: {}, color: {:?}, group: {:?} }}",
+            "Language {{ name: \"{}\", ext: {:?}, language_type: {}, color: {:?}, group: {:?} }}",
             name,
+            self.extensions.as_ref().map(|e| {
+                let ext = e[0].clone();
+                ext.strip_prefix(".").map(|s| s.to_string()).unwrap_or(ext)
+            }),
             self.language_type.to_domain_object_code(),
             self.color,
             self.group

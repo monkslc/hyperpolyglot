@@ -31,3 +31,7 @@ polyglot_tokenizer = { path = "crates/polyglot_tokenizer", version = "0.2.1" }
 [[bin]]
 name = "hyply"
 path = "src/bin/main.rs"
+
+[[bin]]
+name = "codegen"
+path = "src/bin/codegen.rs"
