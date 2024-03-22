@@ -1,8 +1,8 @@
-mod classifier;
-mod extensions;
-mod filenames;
-mod heuristics;
-mod interpreters;
+pub mod classifier;
+pub mod extensions;
+pub mod filenames;
+pub mod heuristics;
+pub mod interpreters;
 
 pub use classifier::classify;
 pub use extensions::{get_extension, get_languages_from_extension};
